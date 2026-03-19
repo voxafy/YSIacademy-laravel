@@ -1,0 +1,82 @@
+<?php
+
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LeaderController;
+use App\Http\Controllers\MediaController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::middleware('guest.session')->group(function (): void {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+});
+
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/courses', [CourseController::class, 'catalog'])->name('courses.index');
+Route::get('/courses/{slug}', [CourseController::class, 'showCourse'])->name('courses.show');
+Route::get('/courses/{slug}/lessons/{lessonId}', [CourseController::class, 'showLesson'])->name('courses.lesson');
+
+Route::middleware('role:STUDENT')->group(function (): void {
+    Route::get('/student', [StudentController::class, 'dashboard'])->name('student.dashboard');
+    Route::post('/lessons/{lessonId}/complete', [StudentController::class, 'completeLesson'])->name('lessons.complete');
+    Route::post('/quizzes/{quizId}/submit', [StudentController::class, 'submitQuiz'])->name('quizzes.submit');
+});
+
+Route::middleware('role:ADMIN,LEADER,STUDENT')->group(function (): void {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
+
+Route::middleware('role:LEADER')->prefix('leader')->name('leader.')->group(function (): void {
+    Route::get('/', [LeaderController::class, 'dashboard'])->name('dashboard');
+    Route::get('/assignments', [LeaderController::class, 'assignments'])->name('assignments');
+    Route::post('/assignments', [LeaderController::class, 'assignCourse'])->name('assignments.store');
+    Route::post('/trainees', [LeaderController::class, 'storeTrainee'])->name('trainees.store');
+    Route::get('/team/{userId}', [LeaderController::class, 'employeeDetail'])->name('team.show');
+    Route::get('/team/{userId}/edit', [LeaderController::class, 'editEmployee'])->name('team.edit');
+    Route::post('/team/{userId}/edit', [LeaderController::class, 'updateEmployee'])->name('team.update');
+    Route::post('/decisions/{enrollmentId}', [LeaderController::class, 'submitDecision'])->name('decisions.store');
+});
+
+Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [AdminController::class, 'users'])->name('users.index');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{userId}', [AdminController::class, 'editUser'])->name('users.show');
+    Route::post('/users/{userId}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::get('/courses', [AdminController::class, 'courses'])->name('courses.index');
+    Route::post('/courses', [AdminController::class, 'storeCourse'])->name('courses.store');
+    Route::post('/courses/{courseId}/duplicate', [AdminController::class, 'duplicateCourse'])->name('courses.duplicate');
+    Route::post('/courses/{courseId}/delete', [AdminController::class, 'deleteCourse'])->name('courses.delete');
+    Route::get('/courses/{courseId}', [AdminController::class, 'editCourse'])->name('courses.show');
+    Route::post('/courses/{courseId}', [AdminController::class, 'updateCourse'])->name('courses.update');
+    Route::post('/courses/{courseId}/modules', [AdminController::class, 'storeModule'])->name('modules.store');
+    Route::post('/modules/{moduleId}/delete', [AdminController::class, 'deleteModule'])->name('modules.delete');
+    Route::post('/modules/{moduleId}/lessons', [AdminController::class, 'storeLesson'])->name('lessons.store');
+    Route::get('/lessons/{lessonId}', [AdminController::class, 'editLesson'])->name('lessons.show');
+    Route::post('/lessons/{lessonId}', [AdminController::class, 'updateLesson'])->name('lessons.update');
+    Route::post('/lessons/{lessonId}/delete', [AdminController::class, 'deleteLesson'])->name('lessons.delete');
+    Route::post('/lessons/{lessonId}/quiz', [AdminController::class, 'updateLessonQuiz'])->name('lessons.quiz');
+    Route::post('/lessons/{lessonId}/video', [MediaController::class, 'uploadLessonVideo'])->name('lessons.video.store');
+    Route::post('/lessons/{lessonId}/video/delete', [MediaController::class, 'deleteLessonVideo'])->name('lessons.video.delete');
+    Route::post('/lessons/{lessonId}/attachments', [MediaController::class, 'uploadLessonAttachment'])->name('lessons.attachments.store');
+    Route::post('/lessons/{lessonId}/attachments/{assetId}/delete', [MediaController::class, 'deleteLessonAttachment'])->name('lessons.attachments.delete');
+    Route::get('/questions', [AdminController::class, 'questions'])->name('questions.index');
+    Route::post('/questions', [AdminController::class, 'storeQuestion'])->name('questions.store');
+    Route::get('/assignments', [AdminController::class, 'assignments'])->name('assignments.index');
+    Route::post('/assignments', [AdminController::class, 'storeAssignment'])->name('assignments.store');
+    Route::get('/results', [AdminController::class, 'results'])->name('results.index');
+    Route::get('/results/{userId}', [AdminController::class, 'resultDetail'])->name('results.show');
+    Route::get('/media', [AdminController::class, 'media'])->name('media.index');
+});
+
+Route::get('/media/{assetId}', [MediaController::class, 'show'])->name('media.show');
