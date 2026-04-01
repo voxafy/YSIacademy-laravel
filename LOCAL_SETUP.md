@@ -65,7 +65,7 @@ Copy-Item .env.example .env
 Проверьте или поправьте значения в `.env`:
 
 ```env
-APP_NAME="Академия ЮСИ"
+APP_NAME="СтройТех"
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://127.0.0.1:8000
@@ -205,11 +205,11 @@ C:/xampp/htdocs/YSIacademy-laravel/public
 
 После `artisan migrate --seed` доступны:
 
-- `admin@demo.local`
-- `leader@demo.local`
-- `student1@demo.local`
-- `student2@demo.local`
-- `student3@demo.local`
+- `admin@demo.local` — администратор
+- `leader@demo.local` — руководитель
+- `student1@demo.local` — оператор колл-центра
+- `student2@demo.local` — менеджер прямого отдела продаж
+- `student3@demo.local` — менеджер партнерского отдела продаж
 
 Пароль для всех:
 

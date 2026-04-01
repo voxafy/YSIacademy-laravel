@@ -52,26 +52,23 @@ $completed = array_values(array_filter($dashboard['enrollments'], static fn (arr
         </div>
     </div>
 
-    <div class="card-stack">
-        <article class="card" style="padding: 28px;">
-            <p class="section-kicker">Следующие шаги</p>
-            <h2 class="section-title section-title--small">Что делать дальше</h2>
-            <div class="markdown">
-                <p>Откройте курс со статусом «В процессе» и пройдите следующий урок.</p>
-                <p>После итогового теста дождитесь решения руководителя.</p>
-                <p>Если курс отправлен на повторное обучение, вернитесь к проблемным модулям.</p>
+    <div>
+        <article class="card dashboard-side-card">
+            <p class="section-kicker">База знаний</p>
+            <h2 class="section-title section-title--small">Регламенты, инструкции и FAQ</h2>
+            <p class="section-text">Отдельный раздел для повседневной работы: документы, правила, инструкции, ответы на частые вопросы и внутренние стандарты ЮСИ без привязки к каталогу курсов.</p>
+            <div class="course-metric-list">
+                <div class="course-metric-list__item">
+                    <span>Что внутри</span>
+                    <strong>Документы и FAQ</strong>
+                </div>
+                <div class="course-metric-list__item">
+                    <span>Для чего нужна</span>
+                    <strong>Быстрый поиск ответов</strong>
+                </div>
             </div>
-        </article>
-        <article class="card" style="padding: 28px;">
-            <p class="section-kicker">Уведомления</p>
-            <h2 class="section-title section-title--small">Последние сообщения</h2>
-            <div class="card-stack">
-                <?php foreach ($dashboard['notifications'] as $notification): ?>
-                    <article class="list-item">
-                        <strong><?= e($notification['title']) ?></strong>
-                        <div class="muted" style="margin-top: 8px;"><?= e($notification['body']) ?></div>
-                    </article>
-                <?php endforeach; ?>
+            <div class="actions-row">
+                <a href="<?= url('/knowledge-base') ?>" class="btn btn-primary">Открыть базу знаний</a>
             </div>
         </article>
     </div>

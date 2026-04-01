@@ -65,14 +65,13 @@ if (!function_exists('nav_sections_for')) {
     function nav_sections_for(?array $user): array
     {
         if ($user === null) {
-            return [
-                ['href' => '/courses', 'label' => 'Каталог курсов', 'patterns' => ['/courses', '/courses/*']],
-            ];
+            return [];
         }
 
         return match ($user['role_key'] ?? '') {
             'ADMIN' => [
                 ['href' => '/courses', 'label' => 'Каталог курсов', 'patterns' => ['/courses', '/courses/*']],
+                ['href' => '/knowledge-base', 'label' => 'База знаний', 'patterns' => ['/knowledge-base', '/knowledge-base/*']],
                 ['href' => '/admin', 'label' => 'Обзор', 'patterns' => ['/admin']],
                 ['href' => '/admin/courses', 'label' => 'Курсы', 'patterns' => ['/admin/courses', '/admin/courses/*', '/admin/lessons/*']],
                 ['href' => '/admin/users', 'label' => 'Пользователи', 'patterns' => ['/admin/users', '/admin/users/*']],
@@ -83,11 +82,14 @@ if (!function_exists('nav_sections_for')) {
             ],
             'LEADER' => [
                 ['href' => '/courses', 'label' => 'Каталог курсов', 'patterns' => ['/courses', '/courses/*']],
+                ['href' => '/knowledge-base', 'label' => 'База знаний', 'patterns' => ['/knowledge-base', '/knowledge-base/*']],
                 ['href' => '/leader', 'label' => 'Обзор', 'patterns' => ['/leader', '/leader/team/*']],
                 ['href' => '/leader/assignments', 'label' => 'Назначения', 'patterns' => ['/leader/assignments']],
+                ['href' => '/admin/courses', 'label' => 'Редактор курсов', 'patterns' => ['/admin/courses', '/admin/courses/*', '/admin/lessons/*', '/admin/questions']],
             ],
             default => [
                 ['href' => '/courses', 'label' => 'Каталог курсов', 'patterns' => ['/courses', '/courses/*']],
+                ['href' => '/knowledge-base', 'label' => 'База знаний', 'patterns' => ['/knowledge-base', '/knowledge-base/*']],
                 ['href' => '/student', 'label' => 'Мой кабинет', 'patterns' => ['/student']],
             ],
         };
@@ -181,6 +183,90 @@ if (!function_exists('course_status_class')) {
             'RECOMMENDED_FOR_ACCESS' => 'badge badge-cyan',
             'REPEAT_TRAINING' => 'badge badge-orange',
             default => 'badge badge-muted',
+        };
+    }
+}
+
+if (!function_exists('publication_status_label')) {
+    function publication_status_label(string $status): string
+    {
+        return match ($status) {
+            'PUBLISHED' => 'Опубликован',
+            'TEMPLATE' => 'Шаблон',
+            'ARCHIVED' => 'В архиве',
+            default => 'Черновик',
+        };
+    }
+}
+
+if (!function_exists('publication_status_badge_class')) {
+    function publication_status_badge_class(string $status): string
+    {
+        return match ($status) {
+            'PUBLISHED' => 'badge badge-success',
+            'TEMPLATE' => 'badge badge-cyan',
+            'ARCHIVED' => 'badge badge-warning',
+            default => 'badge badge-muted',
+        };
+    }
+}
+
+if (!function_exists('lesson_type_label')) {
+    function lesson_type_label(string $type): string
+    {
+        return match ($type) {
+            'VIDEO' => 'Видео',
+            'MIXED' => 'Смешанный',
+            'QUIZ' => 'Тест',
+            default => 'Текстовый',
+        };
+    }
+}
+
+if (!function_exists('lesson_type_badge_class')) {
+    function lesson_type_badge_class(string $type): string
+    {
+        return match ($type) {
+            'VIDEO' => 'badge badge-cyan',
+            'MIXED' => 'badge badge-info',
+            'QUIZ' => 'badge badge-warning',
+            default => 'badge badge-muted',
+        };
+    }
+}
+
+if (!function_exists('knowledge_article_type_label')) {
+    function knowledge_article_type_label(string $type): string
+    {
+        return match ($type) {
+            'INSTRUCTION' => 'Инструкция',
+            'RULE' => 'Правило',
+            'FAQ' => 'FAQ',
+            default => 'Документ',
+        };
+    }
+}
+
+if (!function_exists('knowledge_article_type_badge_class')) {
+    function knowledge_article_type_badge_class(string $type): string
+    {
+        return match ($type) {
+            'INSTRUCTION' => 'badge badge-info',
+            'RULE' => 'badge badge-warning',
+            'FAQ' => 'badge badge-success',
+            default => 'badge badge-cyan',
+        };
+    }
+}
+
+if (!function_exists('knowledge_visibility_label')) {
+    function knowledge_visibility_label(string $scope): string
+    {
+        return match ($scope) {
+            'ADMIN' => 'Только администратор',
+            'LEADER' => 'Для руководителей',
+            'STUDENT' => 'Для сотрудников',
+            default => 'Для всех ролей',
         };
     }
 }
@@ -364,5 +450,25 @@ if (!function_exists('internal_path')) {
         }
 
         return '/' . ltrim($candidate, '/');
+    }
+}
+
+if (!function_exists('knowledge_article_status_label')) {
+    function knowledge_article_status_label(string $status): string
+    {
+        return match ($status) {
+            'PUBLISHED' => 'Опубликован',
+            default => 'Черновик',
+        };
+    }
+}
+
+if (!function_exists('knowledge_article_status_badge_class')) {
+    function knowledge_article_status_badge_class(string $status): string
+    {
+        return match ($status) {
+            'PUBLISHED' => 'badge badge-success',
+            default => 'badge badge-muted',
+        };
     }
 }

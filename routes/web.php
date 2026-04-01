@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LeaderController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
@@ -32,6 +33,9 @@ Route::middleware('role:STUDENT')->group(function (): void {
 });
 
 Route::middleware('role:ADMIN,LEADER,STUDENT')->group(function (): void {
+    Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base');
+    Route::get('/knowledge-base/assistant/search', [KnowledgeBaseController::class, 'assistantSearch'])->name('knowledge-base.assistant.search');
+    Route::get('/knowledge-base/{slug}', [KnowledgeBaseController::class, 'show'])->name('knowledge-base.show');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
@@ -47,12 +51,7 @@ Route::middleware('role:LEADER')->prefix('leader')->name('leader.')->group(funct
     Route::post('/decisions/{enrollmentId}', [LeaderController::class, 'submitDecision'])->name('decisions.store');
 });
 
-Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function (): void {
-    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/users', [AdminController::class, 'users'])->name('users.index');
-    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
-    Route::get('/users/{userId}', [AdminController::class, 'editUser'])->name('users.show');
-    Route::post('/users/{userId}', [AdminController::class, 'updateUser'])->name('users.update');
+Route::middleware('role:ADMIN,LEADER')->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/courses', [AdminController::class, 'courses'])->name('courses.index');
     Route::post('/courses', [AdminController::class, 'storeCourse'])->name('courses.store');
     Route::post('/courses/{courseId}/duplicate', [AdminController::class, 'duplicateCourse'])->name('courses.duplicate');
@@ -72,6 +71,22 @@ Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function
     Route::post('/lessons/{lessonId}/attachments/{assetId}/delete', [MediaController::class, 'deleteLessonAttachment'])->name('lessons.attachments.delete');
     Route::get('/questions', [AdminController::class, 'questions'])->name('questions.index');
     Route::post('/questions', [AdminController::class, 'storeQuestion'])->name('questions.store');
+});
+
+Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/knowledge-base', [AdminController::class, 'knowledgeBase'])->name('knowledge.index');
+    Route::post('/knowledge-base/categories', [AdminController::class, 'storeKnowledgeCategory'])->name('knowledge.categories.store');
+    Route::post('/knowledge-base/categories/{categoryId}', [AdminController::class, 'updateKnowledgeCategory'])->name('knowledge.categories.update');
+    Route::post('/knowledge-base/categories/{categoryId}/delete', [AdminController::class, 'deleteKnowledgeCategory'])->name('knowledge.categories.delete');
+    Route::post('/knowledge-base/articles', [AdminController::class, 'storeKnowledgeArticle'])->name('knowledge.articles.store');
+    Route::get('/knowledge-base/articles/{articleId}', [AdminController::class, 'editKnowledgeArticle'])->name('knowledge.articles.show');
+    Route::post('/knowledge-base/articles/{articleId}', [AdminController::class, 'updateKnowledgeArticle'])->name('knowledge.articles.update');
+    Route::post('/knowledge-base/articles/{articleId}/delete', [AdminController::class, 'deleteKnowledgeArticle'])->name('knowledge.articles.delete');
+    Route::get('/users', [AdminController::class, 'users'])->name('users.index');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{userId}', [AdminController::class, 'editUser'])->name('users.show');
+    Route::post('/users/{userId}', [AdminController::class, 'updateUser'])->name('users.update');
     Route::get('/assignments', [AdminController::class, 'assignments'])->name('assignments.index');
     Route::post('/assignments', [AdminController::class, 'storeAssignment'])->name('assignments.store');
     Route::get('/results', [AdminController::class, 'results'])->name('results.index');

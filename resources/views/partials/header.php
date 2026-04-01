@@ -6,20 +6,26 @@ $navItems = nav_sections_for($headerUser);
     <div class="container">
         <div class="site-header__bar">
             <div class="site-header__brand">
-                <a href="<?= url('/') ?>" class="brand-pill">
-                    <span class="brand-pill__meta">Академия</span>
-                    <span class="brand-pill__divider"></span>
-                    <span class="brand-pill__title">ЮСИ</span>
+                <a href="<?= url('/') ?>" class="brand-pill" aria-label="Онлайн университет ЮСИ СтройТех">
+                    <span class="brand-pill__mark">СТ</span>
+                    <span class="brand-pill__body">
+                        <span class="brand-pill__meta">Онлайн университет ЮСИ</span>
+                        <span class="brand-pill__title">СтройТех</span>
+                    </span>
                 </a>
             </div>
 
-            <nav class="site-header__nav" aria-label="Основные разделы">
-                <?php foreach ($navItems as $item): ?>
-                    <a href="<?= url($item['href']) ?>" class="nav-pill <?= nav_item_is_active($item) ? 'is-active' : '' ?>">
-                        <?= e($item['label']) ?>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
+            <?php if ($navItems !== []): ?>
+                <nav class="site-header__nav" aria-label="Основные разделы">
+                    <?php foreach ($navItems as $item): ?>
+                        <a href="<?= url($item['href']) ?>" class="nav-pill <?= nav_item_is_active($item) ? 'is-active' : '' ?>">
+                            <?= e($item['label']) ?>
+                        </a>
+                    <?php endforeach; ?>
+                </nav>
+            <?php else: ?>
+                <div class="site-header__nav site-header__nav--empty" aria-hidden="true"></div>
+            <?php endif; ?>
 
             <div class="site-header__actions">
                 <button type="button" class="icon-button icon-button--theme" data-theme-toggle aria-label="Переключить тему">

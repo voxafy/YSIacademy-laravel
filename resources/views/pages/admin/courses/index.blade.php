@@ -39,7 +39,7 @@
                             <h3 style="margin: 10px 0 0; font-size: 1.3rem; color: var(--navy);"><?= e($course['title']) ?></h3>
                             <p class="section-text"><?= count($course['modules']) ?> модулей</p>
                         </div>
-                        <span class="badge badge-muted"><?= e($course['status']) ?></span>
+                        <span class="<?= publication_status_badge_class((string) $course['status']) ?>"><?= e(publication_status_label((string) $course['status'])) ?></span>
                     </div>
                     <div class="actions-row">
                         <a href="<?= url('/admin/courses/' . $course['id']) ?>" class="btn btn-ghost btn-sm">Открыть</a>

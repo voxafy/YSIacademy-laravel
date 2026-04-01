@@ -24,7 +24,7 @@ final class MediaController extends Controller
 
     public function uploadLessonVideo(Request $request, string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         try {
             $file = $request->file('video');
@@ -33,7 +33,7 @@ final class MediaController extends Controller
                 'tmp_name' => $file?->getPathname(),
                 'name' => $file?->getClientOriginalName(),
                 'size' => $file?->getSize(),
-            ], (string) current_user()['id']);
+            ], (string) $user['id']);
 
             return redirect('/admin/lessons/' . $lessonId)->with('success', 'Видео загружено.');
         } catch (RuntimeException $exception) {
@@ -43,7 +43,7 @@ final class MediaController extends Controller
 
     public function deleteLessonVideo(string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
         $this->media->deleteLessonVideo($lessonId);
 
         return redirect('/admin/lessons/' . $lessonId)->with('success', 'Видео удалено.');
@@ -51,7 +51,7 @@ final class MediaController extends Controller
 
     public function uploadLessonAttachment(Request $request, string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         try {
             $file = $request->file('attachment');
@@ -60,7 +60,7 @@ final class MediaController extends Controller
                 'tmp_name' => $file?->getPathname(),
                 'name' => $file?->getClientOriginalName(),
                 'size' => $file?->getSize(),
-            ], (string) current_user()['id']);
+            ], (string) $user['id']);
 
             return redirect('/admin/lessons/' . $lessonId)->with('success', 'Материал добавлен.');
         } catch (RuntimeException $exception) {
@@ -70,9 +70,20 @@ final class MediaController extends Controller
 
     public function deleteLessonAttachment(string $lessonId, string $assetId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
         $this->media->deleteLessonAttachment($lessonId, $assetId);
 
         return redirect('/admin/lessons/' . $lessonId)->with('success', 'Материал удален.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireCourseEditorAccess(): array
+    {
+        $user = current_user();
+        abort_unless($user && in_array($user['role_key'] ?? '', ['ADMIN', 'LEADER'], true), 403);
+
+        return $user;
     }
 }

@@ -19,10 +19,10 @@ final class HomeController extends BasePageController
     public function index(): Response
     {
         $user = current_user();
-        $courses = $this->academy->getPublishedCourses($user);
+        $courses = $user ? $this->academy->getPublishedCourses($user) : [];
 
         return $this->render('pages/home', [
-            'title' => 'Академия ЮСИ',
+            'title' => 'СтройТех | сервис обучения ЮСИ',
             'courses' => array_slice($courses, 0, 6),
             'user' => $user,
         ]);

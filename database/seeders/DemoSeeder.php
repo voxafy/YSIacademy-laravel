@@ -29,7 +29,8 @@ final class DemoSeeder extends Seeder
      */
     private function splitStatements(string $sql): array
     {
-        $lines = preg_split("/\R/", $sql) ?: [];
+        // `\R` also matches raw 0x85 bytes, which can appear inside UTF-8 Cyrillic sequences.
+        $lines = preg_split("/\r\n|\n|\r/", $sql) ?: [];
         $buffer = '';
         $statements = [];
 

@@ -23,8 +23,7 @@ final class AdminController extends BasePageController
 
     public function dashboard(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         return $this->render('pages/admin/dashboard', [
             'title' => 'Обзор администратора',
@@ -35,8 +34,7 @@ final class AdminController extends BasePageController
 
     public function users(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
         $resources = $this->academy->getAdminResources();
 
         return $this->render('pages/admin/users/index', [
@@ -50,8 +48,7 @@ final class AdminController extends BasePageController
 
     public function storeUser(Request $request): RedirectResponse
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         try {
             $id = $this->academyWrite->createUser($user, [
@@ -75,8 +72,7 @@ final class AdminController extends BasePageController
 
     public function editUser(string $userId): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         return $this->render('pages/admin/users/show', [
             'title' => 'Профиль пользователя',
@@ -89,8 +85,7 @@ final class AdminController extends BasePageController
 
     public function updateUser(Request $request, string $userId): RedirectResponse
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         try {
             $this->academyWrite->updateUserAsAdmin($userId, [
@@ -115,8 +110,7 @@ final class AdminController extends BasePageController
 
     public function courses(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
         $resources = $this->academy->getAdminResources();
 
         return $this->render('pages/admin/courses/index', [
@@ -129,8 +123,7 @@ final class AdminController extends BasePageController
 
     public function storeCourse(Request $request): RedirectResponse
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         try {
             $courseId = $this->academyWrite->createCourse((string) $user['id'], [
@@ -151,7 +144,7 @@ final class AdminController extends BasePageController
 
     public function duplicateCourse(string $courseId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $source = $this->academy->getCourseEditorData($courseId);
@@ -165,7 +158,7 @@ final class AdminController extends BasePageController
 
     public function deleteCourse(string $courseId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $source = $this->academy->getCourseEditorData($courseId);
@@ -179,8 +172,7 @@ final class AdminController extends BasePageController
 
     public function editCourse(string $courseId): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         return $this->render('pages/admin/courses/show', [
             'title' => 'Редактор курса',
@@ -193,7 +185,7 @@ final class AdminController extends BasePageController
 
     public function updateCourse(Request $request, string $courseId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $this->academyWrite->updateCourse($courseId, [
@@ -213,7 +205,7 @@ final class AdminController extends BasePageController
 
     public function storeModule(Request $request, string $courseId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $this->academyWrite->createModule($courseId, [
@@ -229,7 +221,7 @@ final class AdminController extends BasePageController
 
     public function deleteModule(string $moduleId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $courseId = $this->academyWrite->deleteModule($moduleId);
@@ -242,7 +234,7 @@ final class AdminController extends BasePageController
 
     public function storeLesson(Request $request, string $moduleId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $lessonId = $this->academyWrite->createLesson($moduleId, [
@@ -259,8 +251,7 @@ final class AdminController extends BasePageController
 
     public function editLesson(string $lessonId): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         return $this->render('pages/admin/lessons/show', [
             'title' => 'Редактор урока',
@@ -272,7 +263,7 @@ final class AdminController extends BasePageController
 
     public function updateLesson(Request $request, string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $this->academyWrite->updateLesson($lessonId, [
@@ -292,7 +283,7 @@ final class AdminController extends BasePageController
 
     public function deleteLesson(string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         try {
             $courseId = $this->academyWrite->deleteLesson($lessonId);
@@ -305,7 +296,7 @@ final class AdminController extends BasePageController
 
     public function updateLessonQuiz(Request $request, string $lessonId): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         $questionIds = preg_split('/[\r\n,]+/', (string) $request->input('question_ids', '')) ?: [];
         $questionIds = array_values(array_filter(array_map('trim', $questionIds)));
@@ -327,8 +318,7 @@ final class AdminController extends BasePageController
 
     public function questions(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireCourseEditorAccess();
 
         return $this->render('pages/admin/questions', [
             'title' => 'Банк вопросов',
@@ -339,7 +329,7 @@ final class AdminController extends BasePageController
 
     public function storeQuestion(Request $request): RedirectResponse
     {
-        abort_unless(current_user() && (current_user()['role_key'] ?? '') === 'ADMIN', 403);
+        $this->requireCourseEditorAccess();
 
         $options = preg_split('/[\r\n]+/', (string) $request->input('options', '')) ?: [];
         $options = array_values(array_filter(array_map('trim', $options)));
@@ -364,10 +354,147 @@ final class AdminController extends BasePageController
         }
     }
 
+    public function knowledgeBase(): Response
+    {
+        $user = $this->requireAdmin();
+
+        return $this->render('pages/admin/knowledge/index', [
+            'title' => 'Редактор базы знаний',
+            'user' => $user,
+            'knowledge' => $this->academy->getKnowledgeBaseAdminResources(),
+        ]);
+    }
+
+    public function storeKnowledgeCategory(Request $request): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $this->academyWrite->createKnowledgeCategory($user, [
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'description' => (string) $request->input('description', ''),
+                'accent_color' => (string) $request->input('accent_color', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+            ]);
+
+            return redirect('/admin/knowledge-base')->with('success', 'Раздел базы знаний создан.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function updateKnowledgeCategory(Request $request, string $categoryId): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $this->academyWrite->updateKnowledgeCategory($categoryId, $user, [
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'description' => (string) $request->input('description', ''),
+                'accent_color' => (string) $request->input('accent_color', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+            ]);
+
+            return redirect('/admin/knowledge-base')->with('success', 'Раздел базы знаний обновлён.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function deleteKnowledgeCategory(string $categoryId): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $this->academyWrite->deleteKnowledgeCategory($categoryId, $user);
+
+            return redirect('/admin/knowledge-base')->with('success', 'Раздел базы знаний удалён.');
+        } catch (RuntimeException $exception) {
+            return redirect('/admin/knowledge-base')->with('error', $exception->getMessage());
+        }
+    }
+
+    public function storeKnowledgeArticle(Request $request): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $articleId = $this->academyWrite->createKnowledgeArticle($user, [
+                'category_id' => (string) $request->input('category_id', ''),
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'article_type' => (string) $request->input('article_type', 'DOCUMENT'),
+                'visibility_scope' => (string) $request->input('visibility_scope', 'ALL'),
+                'status' => (string) $request->input('status', 'DRAFT'),
+                'is_featured' => (string) $request->input('is_featured', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+                'estimated_minutes' => (int) $request->input('estimated_minutes', 0),
+                'excerpt' => (string) $request->input('excerpt', ''),
+                'body' => (string) $request->input('body', ''),
+                'search_keywords' => (string) $request->input('search_keywords', ''),
+            ]);
+
+            return redirect('/admin/knowledge-base/articles/' . $articleId)->with('success', 'Материал базы знаний создан.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function editKnowledgeArticle(string $articleId): Response
+    {
+        $user = $this->requireAdmin();
+
+        return $this->render('pages/admin/knowledge/show', [
+            'title' => 'Редактор материала базы знаний',
+            'user' => $user,
+            'knowledge' => $this->academy->getKnowledgeArticleEditorData($articleId),
+        ]);
+    }
+
+    public function updateKnowledgeArticle(Request $request, string $articleId): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $this->academyWrite->updateKnowledgeArticle($articleId, $user, [
+                'category_id' => (string) $request->input('category_id', ''),
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'article_type' => (string) $request->input('article_type', 'DOCUMENT'),
+                'visibility_scope' => (string) $request->input('visibility_scope', 'ALL'),
+                'status' => (string) $request->input('status', 'DRAFT'),
+                'is_featured' => (string) $request->input('is_featured', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+                'estimated_minutes' => (int) $request->input('estimated_minutes', 0),
+                'excerpt' => (string) $request->input('excerpt', ''),
+                'body' => (string) $request->input('body', ''),
+                'search_keywords' => (string) $request->input('search_keywords', ''),
+            ]);
+
+            return redirect('/admin/knowledge-base/articles/' . $articleId)->with('success', 'Материал базы знаний обновлён.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function deleteKnowledgeArticle(string $articleId): RedirectResponse
+    {
+        $user = $this->requireAdmin();
+
+        try {
+            $this->academyWrite->deleteKnowledgeArticle($articleId, $user);
+
+            return redirect('/admin/knowledge-base')->with('success', 'Материал базы знаний удалён.');
+        } catch (RuntimeException $exception) {
+            return redirect('/admin/knowledge-base')->with('error', $exception->getMessage());
+        }
+    }
+
     public function assignments(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         return $this->render('pages/admin/assignments', [
             'title' => 'Назначения',
@@ -378,8 +505,7 @@ final class AdminController extends BasePageController
 
     public function storeAssignment(Request $request): RedirectResponse
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         try {
             $this->academyWrite->assignCourse(
@@ -396,8 +522,7 @@ final class AdminController extends BasePageController
 
     public function results(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         return $this->render('pages/admin/results/index', [
             'title' => 'Результаты',
@@ -408,8 +533,7 @@ final class AdminController extends BasePageController
 
     public function resultDetail(string $userId): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
 
         return $this->render('pages/admin/results/show', [
             'title' => 'Карточка сотрудника',
@@ -420,8 +544,7 @@ final class AdminController extends BasePageController
 
     public function media(): Response
     {
-        $user = current_user();
-        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+        $user = $this->requireAdmin();
         $resources = $this->academy->getAdminResources();
 
         return $this->render('pages/admin/media', [
@@ -429,5 +552,27 @@ final class AdminController extends BasePageController
             'user' => $user,
             'media' => $resources['media'],
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireAdmin(): array
+    {
+        $user = current_user();
+        abort_unless($user && ($user['role_key'] ?? '') === 'ADMIN', 403);
+
+        return $user;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireCourseEditorAccess(): array
+    {
+        $user = current_user();
+        abort_unless($user && in_array($user['role_key'] ?? '', ['ADMIN', 'LEADER'], true), 403);
+
+        return $user;
     }
 }

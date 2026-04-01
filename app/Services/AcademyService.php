@@ -279,6 +279,388 @@ final class AcademyService
     }
 
     /**
+     * @param array<string, mixed>|null $user
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getKnowledgeBaseIndex(?array $user, array $filters = []): array
+    {
+        $scopes = $this->knowledgeVisibilityScopes($user);
+        $allowedTypes = ['DOCUMENT', 'INSTRUCTION', 'RULE', 'FAQ'];
+        $query = trim((string) ($filters['q'] ?? ''));
+        $type = strtoupper(trim((string) ($filters['type'] ?? '')));
+        $category = trim((string) ($filters['category'] ?? ''));
+
+        if (!in_array($type, $allowedTypes, true)) {
+            $type = '';
+        }
+
+        $categoryRows = $this->db->fetchAll(
+            sprintf(
+                "SELECT kc.id,
+                        kc.slug,
+                        kc.title,
+                        kc.description,
+                        kc.accent_color,
+                        kc.sort_order,
+                        COUNT(ka.id) AS articles_count
+                 FROM knowledge_categories kc
+                 LEFT JOIN knowledge_articles ka
+                    ON ka.category_id = kc.id
+                   AND ka.status = 'PUBLISHED'
+                   AND ka.visibility_scope IN (%s)
+                 GROUP BY kc.id, kc.slug, kc.title, kc.description, kc.accent_color, kc.sort_order
+                 ORDER BY kc.sort_order ASC, kc.title ASC",
+                $this->placeholders(count($scopes)),
+            ),
+            $scopes,
+        );
+
+        $typeRows = $this->db->fetchAll(
+            sprintf(
+                "SELECT article_type, COUNT(*) AS total
+                 FROM knowledge_articles
+                 WHERE status = 'PUBLISHED'
+                   AND visibility_scope IN (%s)
+                 GROUP BY article_type",
+                $this->placeholders(count($scopes)),
+            ),
+            $scopes,
+        );
+
+        $typeMap = [];
+        foreach ($typeRows as $row) {
+            $typeMap[(string) $row['article_type']] = (int) $row['total'];
+        }
+
+        $where = ["ka.status = 'PUBLISHED'", sprintf('ka.visibility_scope IN (%s)', $this->placeholders(count($scopes)))];
+        $params = $scopes;
+
+        if ($query !== '') {
+            $where[] = '(ka.title LIKE ? OR ka.excerpt LIKE ? OR ka.body LIKE ? OR ka.search_keywords LIKE ?)';
+            $needle = '%' . $query . '%';
+            array_push($params, $needle, $needle, $needle, $needle);
+        }
+
+        if ($type !== '') {
+            $where[] = 'ka.article_type = ?';
+            $params[] = $type;
+        }
+
+        if ($category !== '') {
+            $where[] = 'kc.slug = ?';
+            $params[] = $category;
+        }
+
+        $articles = $this->db->fetchAll(
+            'SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+             FROM knowledge_articles ka
+             INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY ka.is_featured DESC, kc.sort_order ASC, ka.sort_order ASC, ka.updated_at DESC',
+            $params,
+        );
+
+        $featured = $this->db->fetchAll(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.status = 'PUBLISHED'
+                   AND ka.is_featured = 1
+                   AND ka.visibility_scope IN (%s)
+                 ORDER BY ka.sort_order ASC, ka.updated_at DESC
+                 LIMIT 4",
+                $this->placeholders(count($scopes)),
+            ),
+            $scopes,
+        );
+
+        $faq = $this->db->fetchAll(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.status = 'PUBLISHED'
+                   AND ka.article_type = 'FAQ'
+                   AND ka.visibility_scope IN (%s)
+                 ORDER BY ka.is_featured DESC, ka.sort_order ASC, ka.updated_at DESC
+                 LIMIT 6",
+                $this->placeholders(count($scopes)),
+            ),
+            $scopes,
+        );
+
+        return [
+            'filters' => [
+                'q' => $query,
+                'type' => $type,
+                'category' => $category,
+            ],
+            'categories' => array_map(
+                static fn (array $row): array => array_merge($row, [
+                    'articles_count' => (int) ($row['articles_count'] ?? 0),
+                ]),
+                $categoryRows,
+            ),
+            'types' => array_map(
+                static fn (string $value): array => [
+                    'value' => $value,
+                    'label' => knowledge_article_type_label($value),
+                    'count' => $typeMap[$value] ?? 0,
+                ],
+                $allowedTypes,
+            ),
+            'featured' => $this->hydrateKnowledgeArticles($featured),
+            'faq' => $this->hydrateKnowledgeArticles($faq),
+            'articles' => $this->hydrateKnowledgeArticles($articles),
+            'totals' => [
+                'articles_total' => array_sum(array_map(static fn (array $row): int => (int) ($row['articles_count'] ?? 0), $categoryRows)),
+                'categories_total' => count($categoryRows),
+                'faq_total' => $typeMap['FAQ'] ?? 0,
+                'featured_total' => count($featured),
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $user
+     * @return array<string, mixed>
+     */
+    public function getKnowledgeArticleBySlug(string $slug, ?array $user): array
+    {
+        $scopes = $this->knowledgeVisibilityScopes($user);
+
+        $article = $this->db->fetchOne(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.slug = ?
+                   AND ka.status = 'PUBLISHED'
+                   AND ka.visibility_scope IN (%s)
+                 LIMIT 1",
+                $this->placeholders(count($scopes)),
+            ),
+            array_merge([$slug], $scopes),
+        );
+
+        if ($article === null) {
+            throw new RuntimeException('Knowledge article not found.');
+        }
+
+        $related = $this->db->fetchAll(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.status = 'PUBLISHED'
+                   AND ka.id <> ?
+                   AND ka.category_id = ?
+                   AND ka.visibility_scope IN (%s)
+                 ORDER BY ka.is_featured DESC, ka.sort_order ASC, ka.updated_at DESC
+                 LIMIT 5",
+                $this->placeholders(count($scopes)),
+            ),
+            array_merge([(string) $article['id'], (string) $article['category_id']], $scopes),
+        );
+
+        $faq = $this->db->fetchAll(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.status = 'PUBLISHED'
+                   AND ka.article_type = 'FAQ'
+                   AND ka.id <> ?
+                   AND ka.visibility_scope IN (%s)
+                 ORDER BY ka.is_featured DESC, ka.sort_order ASC, ka.updated_at DESC
+                 LIMIT 4",
+                $this->placeholders(count($scopes)),
+            ),
+            array_merge([(string) $article['id']], $scopes),
+        );
+
+        $hydratedArticle = $this->hydrateKnowledgeArticles([$article]);
+
+        return [
+            'article' => $hydratedArticle[0],
+            'related' => $this->hydrateKnowledgeArticles($related),
+            'faq' => $this->hydrateKnowledgeArticles($faq),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getKnowledgeBaseAdminResources(): array
+    {
+        $categories = $this->db->fetchAll(
+            "SELECT kc.id,
+                    kc.slug,
+                    kc.title,
+                    kc.description,
+                    kc.accent_color,
+                    kc.sort_order,
+                    COUNT(ka.id) AS articles_count,
+                    SUM(CASE WHEN ka.status = 'PUBLISHED' THEN 1 ELSE 0 END) AS published_count,
+                    MAX(ka.updated_at) AS last_article_at
+             FROM knowledge_categories kc
+             LEFT JOIN knowledge_articles ka ON ka.category_id = kc.id
+             GROUP BY kc.id, kc.slug, kc.title, kc.description, kc.accent_color, kc.sort_order
+             ORDER BY kc.sort_order ASC, kc.title ASC"
+        );
+
+        $articles = $this->db->fetchAll(
+            'SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description,
+                    kc.accent_color AS category_accent, u.full_name AS author_name
+             FROM knowledge_articles ka
+             INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+             LEFT JOIN users u ON u.id = ka.author_id
+             ORDER BY ka.status = "PUBLISHED" DESC, kc.sort_order ASC, ka.sort_order ASC, ka.updated_at DESC'
+        );
+
+        $articleStats = $this->db->fetchOne(
+            "SELECT
+                COUNT(*) AS articles_total,
+                SUM(CASE WHEN status = 'PUBLISHED' THEN 1 ELSE 0 END) AS published_total,
+                SUM(CASE WHEN article_type = 'FAQ' THEN 1 ELSE 0 END) AS faq_total
+             FROM knowledge_articles"
+        ) ?? [];
+
+        $lessonStats = $this->db->fetchOne(
+            "SELECT COUNT(DISTINCT l.id) AS lesson_sources_total
+             FROM lessons l
+             INNER JOIN modules m ON m.id = l.module_id
+             INNER JOIN courses c ON c.id = m.course_id
+             WHERE c.status = 'PUBLISHED'
+               AND m.is_published = 1"
+        ) ?? [];
+
+        return [
+            'categories' => array_map(static function (array $row): array {
+                $row['articles_count'] = (int) ($row['articles_count'] ?? 0);
+                $row['published_count'] = (int) ($row['published_count'] ?? 0);
+
+                return $row;
+            }, $categories),
+            'articles' => $this->hydrateKnowledgeArticles($articles),
+            'article_types' => $this->knowledgeArticleTypeOptions(),
+            'visibility_scopes' => $this->knowledgeVisibilityOptions(),
+            'statuses' => $this->knowledgeArticleStatusOptions(),
+            'stats' => [
+                'categories_total' => count($categories),
+                'articles_total' => (int) ($articleStats['articles_total'] ?? 0),
+                'published_total' => (int) ($articleStats['published_total'] ?? 0),
+                'faq_total' => (int) ($articleStats['faq_total'] ?? 0),
+                'lesson_sources_total' => (int) ($lessonStats['lesson_sources_total'] ?? 0),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getKnowledgeArticleEditorData(string $articleId): array
+    {
+        $article = $this->db->fetchOne(
+            'SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description,
+                    kc.accent_color AS category_accent, u.full_name AS author_name
+             FROM knowledge_articles ka
+             INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+             LEFT JOIN users u ON u.id = ka.author_id
+             WHERE ka.id = ?
+             LIMIT 1',
+            [$articleId],
+        );
+
+        if ($article === null) {
+            throw new RuntimeException('Knowledge article not found.');
+        }
+
+        $hydratedArticle = $this->hydrateKnowledgeArticles([$article])[0];
+
+        return [
+            'article' => $hydratedArticle,
+            'categories' => $this->db->fetchAll('SELECT * FROM knowledge_categories ORDER BY sort_order ASC, title ASC'),
+            'article_types' => $this->knowledgeArticleTypeOptions(),
+            'visibility_scopes' => $this->knowledgeVisibilityOptions(),
+            'statuses' => $this->knowledgeArticleStatusOptions(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $user
+     * @return array<string, mixed>
+     */
+    public function searchKnowledgeAssistant(?array $user, string $query, int $limit = 8): array
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return [
+                'query' => '',
+                'answer' => [
+                    'status' => 'empty',
+                    'lead' => 'Задайте рабочий вопрос.',
+                    'summary' => 'Помощник ищет ответы одновременно по справочнику, инструкциям, правилам и опубликованным урокам.',
+                    'next_steps' => 'Например: как проверить дубль клиента, что фиксировать после звонка, как работает статус повторного обучения.',
+                ],
+                'results' => [],
+                'sources_total' => 0,
+            ];
+        }
+
+        $results = array_merge(
+            $this->searchKnowledgeAssistantArticles($user, $query),
+            $this->searchKnowledgeAssistantLessons($user, $query),
+        );
+
+        usort($results, static function (array $left, array $right): int {
+            $scoreComparison = (int) ($right['score'] ?? 0) <=> (int) ($left['score'] ?? 0);
+            if ($scoreComparison !== 0) {
+                return $scoreComparison;
+            }
+
+            return strcmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        $results = array_values(array_slice($results, 0, $limit));
+
+        if ($results === []) {
+            return [
+                'query' => $query,
+                'answer' => [
+                    'status' => 'empty',
+                    'lead' => 'Точного совпадения пока нет.',
+                    'summary' => 'По вашему запросу помощник не нашёл уверенный материал ни в справочнике, ни в опубликованных уроках.',
+                    'next_steps' => 'Уточните формулировку, используйте ключевые слова процесса или добавьте новый материал в редакторе базы знаний.',
+                ],
+                'results' => [],
+                'sources_total' => 0,
+            ];
+        }
+
+        $primary = $results[0];
+        $supporting = array_slice($results, 1, 3);
+
+        return [
+            'query' => $query,
+            'answer' => [
+                'status' => 'ok',
+                'lead' => ($primary['source_kind'] ?? '') === 'lesson'
+                    ? 'Основной ответ найден в учебном материале.'
+                    : 'Основной ответ найден в базе знаний.',
+                'summary' => $primary['snippet'] ?? '',
+                'next_steps' => $supporting === []
+                    ? 'Откройте материал целиком и при необходимости уточните вопрос.'
+                    : 'Если ответа недостаточно, проверьте ещё связанные материалы ниже.',
+            ],
+            'results' => $results,
+            'sources_total' => count($results),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function getStudentDashboard(string $userId): array
@@ -419,6 +801,9 @@ final class AcademyService
         }
 
         $employee['enrollments'] = $this->fetchEmployeeEnrollments($employeeId);
+        $employee['training_summary'] = $this->buildTrainingSummary($employee['enrollments']);
+        $employee['latest_decision'] = $employee['training_summary']['latest_decision'];
+        $employee['decision_anchor_enrollment_id'] = $employee['training_summary']['decision_anchor_enrollment_id'];
 
         return $employee;
     }
@@ -770,6 +1155,256 @@ final class AcademyService
     }
 
     /**
+     * @param array<string, mixed>|null $user
+     * @return array<int, array<string, mixed>>
+     */
+    private function searchKnowledgeAssistantArticles(?array $user, string $query): array
+    {
+        $scopes = $this->knowledgeVisibilityScopes($user);
+        $rows = $this->db->fetchAll(
+            sprintf(
+                "SELECT ka.*, kc.title AS category_title, kc.slug AS category_slug, kc.description AS category_description, kc.accent_color AS category_accent
+                 FROM knowledge_articles ka
+                 INNER JOIN knowledge_categories kc ON kc.id = ka.category_id
+                 WHERE ka.status = 'PUBLISHED'
+                   AND ka.visibility_scope IN (%s)
+                 ORDER BY ka.is_featured DESC, kc.sort_order ASC, ka.sort_order ASC, ka.updated_at DESC",
+                $this->placeholders(count($scopes)),
+            ),
+            $scopes,
+        );
+
+        $results = [];
+        foreach ($this->hydrateKnowledgeArticles($rows) as $article) {
+            $score = $this->knowledgeSearchScore($query, [
+                ['text' => $article['title'] ?? '', 'weight' => 6],
+                ['text' => $article['excerpt'] ?? '', 'weight' => 5],
+                ['text' => $article['body'] ?? '', 'weight' => 4],
+                ['text' => $article['search_keywords'] ?? '', 'weight' => 5],
+                ['text' => $article['category']['title'] ?? '', 'weight' => 2],
+            ]);
+
+            if ($score <= 0) {
+                continue;
+            }
+
+            $snippetSource = (string) ($article['excerpt'] ?: $article['body']);
+
+            $results[] = [
+                'id' => (string) $article['id'],
+                'source_kind' => 'article',
+                'source_label' => 'Справочник',
+                'title' => (string) $article['title'],
+                'href' => '/knowledge-base/' . $article['slug'],
+                'context' => (string) ($article['category']['title'] ?? ''),
+                'badge' => knowledge_article_type_label((string) $article['article_type']),
+                'snippet' => $this->knowledgeSearchSnippet($snippetSource, $query),
+                'score' => $score,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param array<string, mixed>|null $user
+     * @return array<int, array<string, mixed>>
+     */
+    private function searchKnowledgeAssistantLessons(?array $user, string $query): array
+    {
+        [$whereSql, $params] = $this->knowledgeLessonAssistantConditions($user);
+        $rows = $this->db->fetchAll(
+            'SELECT l.id,
+                    l.title,
+                    l.description,
+                    l.lesson_type,
+                    m.title AS module_title,
+                    m.sort_order AS module_sort_order,
+                    c.slug AS course_slug,
+                    c.title AS course_title,
+                    GROUP_CONCAT(COALESCE(lb.body, "") ORDER BY lb.sort_order SEPARATOR "\n\n") AS lesson_content
+             FROM lessons l
+             INNER JOIN modules m ON m.id = l.module_id
+             INNER JOIN courses c ON c.id = m.course_id
+             LEFT JOIN lesson_blocks lb ON lb.lesson_id = l.id
+             WHERE ' . $whereSql . '
+             GROUP BY l.id, l.title, l.description, l.lesson_type, m.title, m.sort_order, c.slug, c.title
+             ORDER BY c.title ASC, m.sort_order ASC, l.sort_order ASC',
+            $params,
+        );
+
+        $results = [];
+        foreach ($rows as $lesson) {
+            $score = $this->knowledgeSearchScore($query, [
+                ['text' => $lesson['title'] ?? '', 'weight' => 6],
+                ['text' => $lesson['description'] ?? '', 'weight' => 4],
+                ['text' => $lesson['lesson_content'] ?? '', 'weight' => 3],
+                ['text' => $lesson['module_title'] ?? '', 'weight' => 2],
+                ['text' => $lesson['course_title'] ?? '', 'weight' => 2],
+            ]);
+
+            if ($score <= 0) {
+                continue;
+            }
+
+            $content = trim((string) ($lesson['lesson_content'] ?: $lesson['description']));
+
+            $results[] = [
+                'id' => (string) $lesson['id'],
+                'source_kind' => 'lesson',
+                'source_label' => 'Учебный материал',
+                'title' => (string) $lesson['title'],
+                'href' => '/courses/' . $lesson['course_slug'] . '/lessons/' . $lesson['id'],
+                'context' => trim((string) $lesson['course_title'] . ' / ' . (string) $lesson['module_title']),
+                'badge' => lesson_type_label((string) ($lesson['lesson_type'] ?? 'TEXT')),
+                'snippet' => $this->knowledgeSearchSnippet($content, $query),
+                'score' => $score,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param array<string, mixed>|null $user
+     * @return array{0:string,1:array<int,string>}
+     */
+    private function knowledgeLessonAssistantConditions(?array $user): array
+    {
+        $where = ["c.status = 'PUBLISHED'", 'm.is_published = 1'];
+        $params = [];
+
+        $role = (string) ($user['role_key'] ?? '');
+        if ($role === 'STUDENT') {
+            $where[] = '(NOT EXISTS (SELECT 1 FROM course_cities cc WHERE cc.course_id = c.id) OR EXISTS (SELECT 1 FROM course_cities cc WHERE cc.course_id = c.id AND cc.city_id = ?))';
+            $where[] = '(NOT EXISTS (SELECT 1 FROM course_departments cd WHERE cd.course_id = c.id) OR EXISTS (SELECT 1 FROM course_departments cd WHERE cd.course_id = c.id AND cd.department_id = ?))';
+            $params[] = (string) ($user['city_id'] ?? '');
+            $params[] = (string) ($user['department_id'] ?? '');
+        }
+
+        return [implode(' AND ', $where), $params];
+    }
+
+    /**
+     * @param array<int, array{text:string,weight:int}> $weightedTexts
+     */
+    private function knowledgeSearchScore(string $query, array $weightedTexts): int
+    {
+        $normalizedQuery = $this->normalizeKnowledgeText($query);
+        $terms = $this->knowledgeSearchTerms($query);
+        $score = 0;
+
+        foreach ($weightedTexts as $item) {
+            $text = $this->normalizeKnowledgeText((string) ($item['text'] ?? ''));
+            $weight = (int) ($item['weight'] ?? 1);
+
+            if ($text === '') {
+                continue;
+            }
+
+            if ($normalizedQuery !== '' && str_contains($text, $normalizedQuery)) {
+                $score += $weight * 5;
+            }
+
+            foreach ($terms as $term) {
+                if ($term !== '' && str_contains($text, $term)) {
+                    $score += $weight;
+                }
+            }
+        }
+
+        return $score;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function knowledgeSearchTerms(string $query): array
+    {
+        $terms = preg_split('/[\s,.;:!?\/\\\\()\-]+/u', mb_strtolower(trim($query))) ?: [];
+        $terms = array_values(array_unique(array_filter($terms, static fn (string $term): bool => mb_strlen($term) >= 2)));
+
+        return $terms === [] ? [mb_strtolower(trim($query))] : $terms;
+    }
+
+    private function normalizeKnowledgeText(string $value): string
+    {
+        $value = strip_tags($value);
+        $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
+
+        return mb_strtolower($value);
+    }
+
+    private function knowledgeSearchSnippet(string $text, string $query, int $length = 240): string
+    {
+        $plain = preg_replace('/\s+/u', ' ', trim(strip_tags($text))) ?? trim(strip_tags($text));
+        if ($plain === '') {
+            return 'Откройте источник, чтобы посмотреть полный материал.';
+        }
+
+        $position = mb_stripos($plain, $query);
+        if ($position === false) {
+            foreach ($this->knowledgeSearchTerms($query) as $term) {
+                $position = mb_stripos($plain, $term);
+                if ($position !== false) {
+                    break;
+                }
+            }
+        }
+
+        if ($position === false) {
+            return mb_strlen($plain) > $length ? mb_substr($plain, 0, $length - 1) . '…' : $plain;
+        }
+
+        $start = max(0, $position - (int) floor($length / 3));
+        $snippet = mb_substr($plain, $start, $length);
+        $snippet = trim($snippet);
+
+        if ($start > 0) {
+            $snippet = '…' . ltrim($snippet);
+        }
+
+        if ($start + $length < mb_strlen($plain)) {
+            $snippet .= '…';
+        }
+
+        return $snippet;
+    }
+
+    /**
+     * @return array<int, array{value:string,label:string}>
+     */
+    private function knowledgeArticleTypeOptions(): array
+    {
+        return array_map(static fn (string $value): array => [
+            'value' => $value,
+            'label' => knowledge_article_type_label($value),
+        ], ['DOCUMENT', 'INSTRUCTION', 'RULE', 'FAQ']);
+    }
+
+    /**
+     * @return array<int, array{value:string,label:string}>
+     */
+    private function knowledgeVisibilityOptions(): array
+    {
+        return array_map(static fn (string $value): array => [
+            'value' => $value,
+            'label' => knowledge_visibility_label($value),
+        ], ['ALL', 'STUDENT', 'LEADER', 'ADMIN']);
+    }
+
+    /**
+     * @return array<int, array{value:string,label:string}>
+     */
+    private function knowledgeArticleStatusOptions(): array
+    {
+        return array_map(static fn (string $value): array => [
+            'value' => $value,
+            'label' => knowledge_article_status_label($value),
+        ], ['DRAFT', 'PUBLISHED']);
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     private function fetchEmployeeEnrollments(string $userId): array
@@ -814,6 +1449,78 @@ final class AcademyService
     }
 
     /**
+     * @param array<int, array<string, mixed>> $enrollments
+     * @return array{
+     *     overall_completion_percent:int,
+     *     overall_status:string,
+     *     modules_completed:int,
+     *     modules_total:int,
+     *     lessons_completed:int,
+     *     lessons_total:int,
+     *     courses_total:int,
+     *     completed_courses:int,
+     *     latest_decision:array<string, mixed>|null,
+     *     decision_anchor_enrollment_id:string|null
+     * }
+     */
+    private function buildTrainingSummary(array $enrollments): array
+    {
+        $modulesCompleted = 0;
+        $modulesTotal = 0;
+        $lessonsCompleted = 0;
+        $lessonsTotal = 0;
+        $completedCourses = 0;
+        $latestDecision = null;
+        $decisionAnchorEnrollmentId = $enrollments[0]['id'] ?? null;
+        $statuses = [];
+        $completionValues = [];
+
+        foreach ($enrollments as $enrollment) {
+            $statuses[] = (string) ($enrollment['status'] ?? 'NOT_STARTED');
+            $completionValues[] = (int) ($enrollment['completion_percent'] ?? 0);
+            $modulesCompleted += (int) ($enrollment['modules_completed'] ?? 0);
+            $modulesTotal += (int) ($enrollment['modules_total'] ?? 0);
+            $lessonsCompleted += (int) ($enrollment['lessons_completed'] ?? 0);
+            $lessonsTotal += (int) ($enrollment['lessons_total'] ?? 0);
+
+            if ((string) ($enrollment['status'] ?? '') === 'COMPLETED') {
+                $completedCourses++;
+            }
+
+            $decision = $enrollment['decisions'][0] ?? null;
+            if ($decision === null) {
+                continue;
+            }
+
+            if ($latestDecision === null || strtotime((string) $decision['created_at']) > strtotime((string) $latestDecision['created_at'])) {
+                $latestDecision = $decision;
+                $decisionAnchorEnrollmentId = (string) $enrollment['id'];
+            }
+        }
+
+        if ($lessonsTotal > 0) {
+            $overallCompletionPercent = (int) round(($lessonsCompleted / $lessonsTotal) * 100);
+        } elseif ($modulesTotal > 0) {
+            $overallCompletionPercent = (int) round(($modulesCompleted / $modulesTotal) * 100);
+        } else {
+            $overallCompletionPercent = average_progress($completionValues);
+        }
+
+        return [
+            'overall_completion_percent' => $overallCompletionPercent,
+            'overall_status' => overall_status($statuses),
+            'modules_completed' => $modulesCompleted,
+            'modules_total' => $modulesTotal,
+            'lessons_completed' => $lessonsCompleted,
+            'lessons_total' => $lessonsTotal,
+            'courses_total' => count($enrollments),
+            'completed_courses' => $completedCourses,
+            'latest_decision' => $latestDecision,
+            'decision_anchor_enrollment_id' => $decisionAnchorEnrollmentId,
+        ];
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $rows
      * @return array<string, array<int, array<string, mixed>>>
      */
@@ -830,5 +1537,54 @@ final class AcademyService
     private function placeholders(int $count): string
     {
         return implode(',', array_fill(0, $count, '?'));
+    }
+
+    /**
+     * @param array<string, mixed>|null $user
+     * @return array<int, string>
+     */
+    private function knowledgeVisibilityScopes(?array $user): array
+    {
+        $scopes = ['ALL'];
+        $role = (string) ($user['role_key'] ?? '');
+
+        if (in_array($role, ['STUDENT', 'LEADER', 'ADMIN'], true)) {
+            $scopes[] = $role;
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articles
+     * @return array<int, array<string, mixed>>
+     */
+    private function hydrateKnowledgeArticles(array $articles): array
+    {
+        foreach ($articles as &$article) {
+            $article['keywords'] = $this->parseKnowledgeKeywords($article['search_keywords'] ?? null);
+            $article['category'] = [
+                'title' => $article['category_title'] ?? '',
+                'slug' => $article['category_slug'] ?? '',
+                'description' => $article['category_description'] ?? null,
+                'accent_color' => $article['category_accent'] ?? null,
+            ];
+        }
+        unset($article);
+
+        return $articles;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function parseKnowledgeKeywords(?string $value): array
+    {
+        $parts = preg_split('/[,;]+/', trim((string) $value)) ?: [];
+
+        return array_values(array_filter(array_map(
+            static fn (string $item): string => trim($item),
+            $parts,
+        )));
     }
 }

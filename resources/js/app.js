@@ -115,6 +115,186 @@
         });
     });
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    document.querySelectorAll('[data-kb-assistant]').forEach(function (shell) {
+        const endpoint = shell.getAttribute('data-endpoint');
+        const form = shell.querySelector('[data-kb-assistant-form]');
+        const input = shell.querySelector('[data-kb-assistant-input]');
+        const output = shell.querySelector('[data-kb-assistant-output]');
+        const answer = shell.querySelector('[data-kb-assistant-answer]');
+        const results = shell.querySelector('[data-kb-assistant-results]');
+
+        if (!endpoint || !form || !input || !output || !answer || !results) {
+            return;
+        }
+
+        function renderMessage(title, text, isError) {
+            output.hidden = false;
+            answer.innerHTML =
+                '<div class="kb-assistant__answer-card' + (isError ? ' is-error' : '') + '">' +
+                    '<strong>' + escapeHtml(title) + '</strong>' +
+                    '<p>' + escapeHtml(text) + '</p>' +
+                '</div>';
+            results.innerHTML = '';
+        }
+
+        function renderResponse(data) {
+            const answerData = data && data.answer ? data.answer : {};
+            const items = Array.isArray(data && data.results) ? data.results : [];
+
+            output.hidden = false;
+            answer.innerHTML =
+                '<div class="kb-assistant__answer-card">' +
+                    '<strong>' + escapeHtml(answerData.lead || 'Ответ найден') + '</strong>' +
+                    '<p>' + escapeHtml(answerData.summary || '') + '</p>' +
+                    '<span>' + escapeHtml(answerData.next_steps || '') + '</span>' +
+                '</div>';
+
+            if (items.length === 0) {
+                results.innerHTML = '';
+                return;
+            }
+
+            results.innerHTML = items.map(function (item) {
+                return '' +
+                    '<a class="kb-assistant__result" href="' + escapeHtml(item.href || '#') + '">' +
+                        '<div class="kb-assistant__result-top">' +
+                            '<span class="badge badge-muted">' + escapeHtml(item.source_label || 'Источник') + '</span>' +
+                            '<span class="badge badge-info">' + escapeHtml(item.badge || '') + '</span>' +
+                        '</div>' +
+                        '<strong>' + escapeHtml(item.title || '') + '</strong>' +
+                        '<p>' + escapeHtml(item.snippet || '') + '</p>' +
+                        '<span>' + escapeHtml(item.context || '') + '</span>' +
+                    '</a>';
+            }).join('');
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const query = String(input.value || '').trim();
+
+            if (!query) {
+                renderMessage('Нужно задать вопрос', 'Введите фразу, по которой помощник сможет найти релевантные материалы.', true);
+                return;
+            }
+
+            renderMessage('Поиск ответа…', 'Помощник просматривает статьи справочника и опубликованные уроки.', false);
+
+            fetch(endpoint + '?q=' + encodeURIComponent(query), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin',
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('request_failed');
+                    }
+
+                    return response.json();
+                })
+                .then(renderResponse)
+                .catch(function () {
+                    renderMessage('Помощник временно недоступен', 'Не удалось получить ответ. Попробуйте повторить запрос или воспользуйтесь обычным поиском по справке.', true);
+                });
+        });
+    });
+
+    document.querySelectorAll('[data-lesson-nav]').forEach(function (shell) {
+        const toggles = Array.from(shell.querySelectorAll('[data-lesson-nav-toggle]'));
+        const closers = Array.from(shell.querySelectorAll('[data-lesson-nav-close]'));
+        const panel = shell.querySelector('[data-lesson-nav-panel]');
+        const backdrop = shell.querySelector('[data-lesson-nav-backdrop]');
+        const animationDuration = 280;
+        let closeTimer = null;
+
+        if (!panel || toggles.length === 0) {
+            return;
+        }
+
+        function setOpen(isOpen) {
+            if (closeTimer !== null) {
+                window.clearTimeout(closeTimer);
+                closeTimer = null;
+            }
+
+            if (isOpen) {
+                panel.hidden = false;
+
+                if (backdrop) {
+                    backdrop.hidden = false;
+                }
+
+                window.requestAnimationFrame(function () {
+                    shell.classList.add('is-open');
+                });
+            } else {
+                shell.classList.remove('is-open');
+
+                closeTimer = window.setTimeout(function () {
+                    panel.hidden = true;
+
+                    if (backdrop) {
+                        backdrop.hidden = true;
+                    }
+                }, animationDuration);
+            }
+
+
+            toggles.forEach(function (toggle) {
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+
+            document.body.classList.toggle('lesson-nav-open', isOpen);
+        }
+
+        toggles.forEach(function (toggle) {
+            toggle.addEventListener('click', function () {
+                setOpen(!shell.classList.contains('is-open'));
+            });
+        });
+
+        closers.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setOpen(false);
+            });
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener('click', function () {
+                setOpen(false);
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && shell.classList.contains('is-open')) {
+                setOpen(false);
+            }
+        });
+
+        shell.classList.remove('is-open');
+        panel.hidden = true;
+
+        if (backdrop) {
+            backdrop.hidden = true;
+        }
+
+        toggles.forEach(function (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+        });
+
+        document.body.classList.remove('lesson-nav-open');
+    });
+
     document.querySelectorAll('[data-table-search]').forEach(function (input) {
         input.addEventListener('input', function () {
             const targetId = input.getAttribute('data-table-search');

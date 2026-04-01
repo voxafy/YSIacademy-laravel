@@ -2,10 +2,10 @@
 <section class="grid grid-split">
     <div class="hero-card is-brand hero-card">
         <p class="section-kicker" style="color: rgba(219,234,254,0.9);">Доступ в систему</p>
-        <h1 class="section-title" style="color:#fff;">Вход в корпоративную академию</h1>
+        <h1 class="section-title" style="color:#fff;">Вход в СтройТех</h1>
         <p class="section-text" style="color: rgba(239,246,255,0.92);">
-            Используйте корпоративную учетную запись, чтобы продолжить обучение,
-            открыть курсы и перейти в кабинет по вашей роли.
+            Используйте корпоративную учетную запись, чтобы продолжить обучение в сервисе СтройТех,
+            открыть курсы ЮСИ и перейти в кабинет по вашей роли.
         </p>
     </div>
 

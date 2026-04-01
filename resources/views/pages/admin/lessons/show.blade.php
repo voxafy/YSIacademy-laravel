@@ -30,7 +30,7 @@ foreach ($lesson['blocks'] as $block) {
             <?= csrf_field() ?>
             <label class="field"><span class="field__label">Название</span><input class="input" type="text" name="title" value="<?= e($lesson['title']) ?>" required></label>
             <label class="field"><span class="field__label">Описание</span><textarea class="textarea" name="description"><?= e($lesson['description']) ?></textarea></label>
-            <label class="field"><span class="field__label">Тип урока</span><select class="select" name="lesson_type"><?php foreach (['TEXT','VIDEO','MIXED','QUIZ'] as $type): ?><option value="<?= $type ?>" <?= $lesson['lesson_type'] === $type ? 'selected' : '' ?>><?= e($type) ?></option><?php endforeach; ?></select></label>
+            <label class="field"><span class="field__label">Тип урока</span><select class="select" name="lesson_type"><?php foreach (['TEXT','VIDEO','MIXED','QUIZ'] as $type): ?><option value="<?= $type ?>" <?= $lesson['lesson_type'] === $type ? 'selected' : '' ?>><?= e(lesson_type_label($type)) ?></option><?php endforeach; ?></select></label>
             <label class="field"><span class="field__label">Основной материал</span><textarea class="textarea" name="body"><?= e($richText) ?></textarea></label>
             <label class="field"><span class="field__label">Блок правил</span><textarea class="textarea" name="rules_body"><?= e($rulesBody) ?></textarea></label>
             <label class="field"><span class="field__label">Типичные ошибки</span><textarea class="textarea" name="mistakes_body"><?= e($mistakesBody) ?></textarea></label>

@@ -354,7 +354,7 @@ final class AcademyWriteService
                 $description !== '' ? $description : 'Заполните описание курса через редактор.',
                 $title,
                 $description !== '' ? $description : 'Новый курс создан в редакторе.',
-                $targetAudience !== '' ? $targetAudience : 'Сотрудники клиента',
+                $targetAudience !== '' ? $targetAudience : 'Сотрудники ЮСИ',
                 '#1264f2',
                 '#0b1d44',
                 'DRAFT',
@@ -1096,6 +1096,279 @@ final class AcademyWriteService
             'UPDATE enrollments SET status = ?, started_at = ?, completed_at = ? WHERE id = ?',
             [$status, $startedAt, $completedAt, $enrollmentId],
         );
+    }
+
+    public function createKnowledgeCategory(array $actor, array $data): string
+    {
+        $title = trim((string) ($data['title'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $sortOrder = (int) ($data['sort_order'] ?? 0);
+        $accentColor = trim((string) ($data['accent_color'] ?? ''));
+
+        if ($title === '') {
+            throw new RuntimeException('Заполните название раздела базы знаний.');
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        $this->assertKnowledgeSlugUnique('knowledge_categories', $slug);
+
+        $categoryId = str_id();
+        $this->db->execute(
+            'INSERT INTO knowledge_categories (
+                id, slug, title, description, accent_color, sort_order, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            [
+                $categoryId,
+                $slug,
+                $title,
+                $this->nullable($description),
+                $this->nullable($accentColor),
+                $sortOrder,
+            ],
+        );
+
+        $this->audit($actor['id'] ?? null, 'knowledge.category.created', 'knowledge_category', $categoryId, [
+            'title' => $title,
+            'slug' => $slug,
+        ]);
+
+        return $categoryId;
+    }
+
+    public function updateKnowledgeCategory(string $categoryId, array $actor, array $data): void
+    {
+        $existing = $this->db->fetchOne('SELECT * FROM knowledge_categories WHERE id = ? LIMIT 1', [$categoryId]);
+        if ($existing === null) {
+            throw new RuntimeException('Раздел базы знаний не найден.');
+        }
+
+        $title = trim((string) ($data['title'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $sortOrder = (int) ($data['sort_order'] ?? 0);
+        $accentColor = trim((string) ($data['accent_color'] ?? ''));
+
+        if ($title === '') {
+            throw new RuntimeException('Заполните название раздела базы знаний.');
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        $this->assertKnowledgeSlugUnique('knowledge_categories', $slug, $categoryId);
+
+        $this->db->execute(
+            'UPDATE knowledge_categories
+             SET slug = ?, title = ?, description = ?, accent_color = ?, sort_order = ?, updated_at = NOW()
+             WHERE id = ?',
+            [
+                $slug,
+                $title,
+                $this->nullable($description),
+                $this->nullable($accentColor),
+                $sortOrder,
+                $categoryId,
+            ],
+        );
+
+        $this->audit($actor['id'] ?? null, 'knowledge.category.updated', 'knowledge_category', $categoryId, [
+            'title' => $title,
+            'slug' => $slug,
+        ]);
+    }
+
+    public function deleteKnowledgeCategory(string $categoryId, array $actor): void
+    {
+        $existing = $this->db->fetchOne('SELECT id, title FROM knowledge_categories WHERE id = ? LIMIT 1', [$categoryId]);
+        if ($existing === null) {
+            throw new RuntimeException('Раздел базы знаний не найден.');
+        }
+
+        $this->db->execute('DELETE FROM knowledge_categories WHERE id = ?', [$categoryId]);
+        $this->audit($actor['id'] ?? null, 'knowledge.category.deleted', 'knowledge_category', $categoryId, [
+            'title' => $existing['title'] ?? '',
+        ]);
+    }
+
+    public function createKnowledgeArticle(array $actor, array $data): string
+    {
+        $payload = $this->validateKnowledgeArticlePayload($data);
+        $articleId = str_id();
+
+        $this->db->execute(
+            'INSERT INTO knowledge_articles (
+                id, category_id, slug, title, article_type, visibility_scope, status, is_featured, sort_order,
+                estimated_minutes, author_id, excerpt, body, search_keywords, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            [
+                $articleId,
+                $payload['category_id'],
+                $payload['slug'],
+                $payload['title'],
+                $payload['article_type'],
+                $payload['visibility_scope'],
+                $payload['status'],
+                $payload['is_featured'],
+                $payload['sort_order'],
+                $payload['estimated_minutes'],
+                $actor['id'] ?? null,
+                $payload['excerpt'],
+                $payload['body'],
+                $payload['search_keywords'],
+            ],
+        );
+
+        $this->audit($actor['id'] ?? null, 'knowledge.article.created', 'knowledge_article', $articleId, [
+            'title' => $payload['title'],
+            'slug' => $payload['slug'],
+            'status' => $payload['status'],
+        ]);
+
+        return $articleId;
+    }
+
+    public function updateKnowledgeArticle(string $articleId, array $actor, array $data): void
+    {
+        $existing = $this->db->fetchOne('SELECT id FROM knowledge_articles WHERE id = ? LIMIT 1', [$articleId]);
+        if ($existing === null) {
+            throw new RuntimeException('Материал базы знаний не найден.');
+        }
+
+        $payload = $this->validateKnowledgeArticlePayload($data, $articleId);
+
+        $this->db->execute(
+            'UPDATE knowledge_articles
+             SET category_id = ?, slug = ?, title = ?, article_type = ?, visibility_scope = ?, status = ?,
+                 is_featured = ?, sort_order = ?, estimated_minutes = ?, author_id = ?, excerpt = ?, body = ?,
+                 search_keywords = ?, updated_at = NOW()
+             WHERE id = ?',
+            [
+                $payload['category_id'],
+                $payload['slug'],
+                $payload['title'],
+                $payload['article_type'],
+                $payload['visibility_scope'],
+                $payload['status'],
+                $payload['is_featured'],
+                $payload['sort_order'],
+                $payload['estimated_minutes'],
+                $actor['id'] ?? null,
+                $payload['excerpt'],
+                $payload['body'],
+                $payload['search_keywords'],
+                $articleId,
+            ],
+        );
+
+        $this->audit($actor['id'] ?? null, 'knowledge.article.updated', 'knowledge_article', $articleId, [
+            'title' => $payload['title'],
+            'slug' => $payload['slug'],
+            'status' => $payload['status'],
+        ]);
+    }
+
+    public function deleteKnowledgeArticle(string $articleId, array $actor): void
+    {
+        $existing = $this->db->fetchOne('SELECT id, title FROM knowledge_articles WHERE id = ? LIMIT 1', [$articleId]);
+        if ($existing === null) {
+            throw new RuntimeException('Материал базы знаний не найден.');
+        }
+
+        $this->db->execute('DELETE FROM knowledge_articles WHERE id = ?', [$articleId]);
+        $this->audit($actor['id'] ?? null, 'knowledge.article.deleted', 'knowledge_article', $articleId, [
+            'title' => $existing['title'] ?? '',
+        ]);
+    }
+
+    /**
+     * @return array{
+     *     category_id:string,
+     *     slug:string,
+     *     title:string,
+     *     article_type:string,
+     *     visibility_scope:string,
+     *     status:string,
+     *     is_featured:int,
+     *     sort_order:int,
+     *     estimated_minutes:int|null,
+     *     excerpt:string|null,
+     *     body:string,
+     *     search_keywords:string|null
+     * }
+     */
+    private function validateKnowledgeArticlePayload(array $data, ?string $ignoreArticleId = null): array
+    {
+        $categoryId = trim((string) ($data['category_id'] ?? ''));
+        $title = trim((string) ($data['title'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $articleType = strtoupper(trim((string) ($data['article_type'] ?? 'DOCUMENT')));
+        $visibilityScope = strtoupper(trim((string) ($data['visibility_scope'] ?? 'ALL')));
+        $status = strtoupper(trim((string) ($data['status'] ?? 'DRAFT')));
+        $sortOrder = (int) ($data['sort_order'] ?? 0);
+        $estimatedMinutes = (int) ($data['estimated_minutes'] ?? 0);
+        $excerpt = trim((string) ($data['excerpt'] ?? ''));
+        $body = trim((string) ($data['body'] ?? ''));
+        $searchKeywords = trim((string) ($data['search_keywords'] ?? ''));
+        $isFeatured = !empty($data['is_featured']) ? 1 : 0;
+
+        if ($categoryId === '' || $title === '' || $body === '') {
+            throw new RuntimeException('Для материала базы знаний обязательны раздел, название и основной текст.');
+        }
+
+        if ($this->db->fetchOne('SELECT id FROM knowledge_categories WHERE id = ? LIMIT 1', [$categoryId]) === null) {
+            throw new RuntimeException('Выберите существующий раздел базы знаний.');
+        }
+
+        $allowedTypes = ['DOCUMENT', 'INSTRUCTION', 'RULE', 'FAQ'];
+        if (!in_array($articleType, $allowedTypes, true)) {
+            $articleType = 'DOCUMENT';
+        }
+
+        $allowedScopes = ['ALL', 'STUDENT', 'LEADER', 'ADMIN'];
+        if (!in_array($visibilityScope, $allowedScopes, true)) {
+            $visibilityScope = 'ALL';
+        }
+
+        $allowedStatuses = ['DRAFT', 'PUBLISHED'];
+        if (!in_array($status, $allowedStatuses, true)) {
+            $status = 'DRAFT';
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        $this->assertKnowledgeSlugUnique('knowledge_articles', $slug, $ignoreArticleId);
+
+        return [
+            'category_id' => $categoryId,
+            'slug' => $slug,
+            'title' => $title,
+            'article_type' => $articleType,
+            'visibility_scope' => $visibilityScope,
+            'status' => $status,
+            'is_featured' => $isFeatured,
+            'sort_order' => $sortOrder,
+            'estimated_minutes' => $estimatedMinutes > 0 ? $estimatedMinutes : null,
+            'excerpt' => $this->nullable($excerpt),
+            'body' => $body,
+            'search_keywords' => $this->nullable($searchKeywords),
+        ];
+    }
+
+    private function assertKnowledgeSlugUnique(string $table, string $slug, ?string $ignoreId = null): void
+    {
+        if ($ignoreId === null) {
+            $exists = $this->db->fetchOne(
+                sprintf('SELECT id FROM %s WHERE slug = ? LIMIT 1', $table),
+                [$slug],
+            );
+        } else {
+            $exists = $this->db->fetchOne(
+                sprintf('SELECT id FROM %s WHERE slug = ? AND id <> ? LIMIT 1', $table),
+                [$slug, $ignoreId],
+            );
+        }
+
+        if ($exists !== null) {
+            throw new RuntimeException('Материал с таким slug уже существует. Измените ссылку.');
+        }
     }
 
     private function requireRoleById(string $roleId): array
