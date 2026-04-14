@@ -121,6 +121,66 @@ final class AdminController extends BasePageController
         ]);
     }
 
+    public function courseCategories(): Response
+    {
+        $user = $this->requireAdmin();
+
+        return $this->render('pages/admin/courses/categories', [
+            'title' => 'Категории курсов',
+            'user' => $user,
+            'categories' => $this->academy->getCourseCategoryResources(),
+        ]);
+    }
+
+    public function storeCourseCategory(Request $request): RedirectResponse
+    {
+        $this->requireAdmin();
+
+        try {
+            $this->academyWrite->createCourseCategory([
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'description' => (string) $request->input('description', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+            ]);
+
+            return redirect('/admin/course-categories')->with('success', 'Категория создана.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function updateCourseCategory(Request $request, string $categoryId): RedirectResponse
+    {
+        $this->requireAdmin();
+
+        try {
+            $this->academyWrite->updateCourseCategory($categoryId, [
+                'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
+                'description' => (string) $request->input('description', ''),
+                'sort_order' => (int) $request->input('sort_order', 0),
+            ]);
+
+            return redirect('/admin/course-categories')->with('success', 'Категория обновлена.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function deleteCourseCategory(string $categoryId): RedirectResponse
+    {
+        $this->requireAdmin();
+
+        try {
+            $this->academyWrite->deleteCourseCategory($categoryId);
+
+            return redirect('/admin/course-categories')->with('success', 'Категория удалена.');
+        } catch (RuntimeException $exception) {
+            return redirect('/admin/course-categories')->with('error', $exception->getMessage());
+        }
+    }
+
     public function storeCourse(Request $request): RedirectResponse
     {
         $user = $this->requireCourseEditorAccess();
@@ -129,10 +189,14 @@ final class AdminController extends BasePageController
             $courseId = $this->academyWrite->createCourse((string) $user['id'], [
                 'title' => (string) $request->input('title', ''),
                 'slug' => (string) $request->input('slug', ''),
+                'subtitle' => (string) $request->input('subtitle', ''),
+                'short_description' => (string) $request->input('short_description', ''),
                 'category_id' => (string) $request->input('category_id', ''),
                 'target_audience' => (string) $request->input('target_audience', ''),
-                'city_id' => (string) $request->input('city_id', ''),
-                'department_id' => (string) $request->input('department_id', ''),
+                'city_ids' => $request->input('city_ids', []),
+                'department_ids' => $request->input('department_ids', []),
+                'estimated_minutes' => (int) $request->input('estimated_minutes', 45),
+                'pass_score' => (int) $request->input('pass_score', 70),
                 'description' => (string) $request->input('description', ''),
             ]);
 
@@ -190,10 +254,16 @@ final class AdminController extends BasePageController
         try {
             $this->academyWrite->updateCourse($courseId, [
                 'title' => (string) $request->input('title', ''),
+                'slug' => (string) $request->input('slug', ''),
                 'subtitle' => (string) $request->input('subtitle', ''),
                 'short_description' => (string) $request->input('short_description', ''),
                 'description' => (string) $request->input('description', ''),
+                'category_id' => (string) $request->input('category_id', ''),
                 'target_audience' => (string) $request->input('target_audience', ''),
+                'city_ids' => $request->input('city_ids', []),
+                'department_ids' => $request->input('department_ids', []),
+                'estimated_minutes' => (int) $request->input('estimated_minutes', 0),
+                'pass_score' => (int) $request->input('pass_score', 70),
                 'status' => (string) $request->input('status', 'DRAFT'),
             ]);
 
@@ -216,6 +286,26 @@ final class AdminController extends BasePageController
             return redirect('/admin/courses/' . $courseId)->with('success', 'Модуль добавлен.');
         } catch (RuntimeException $exception) {
             return redirect('/admin/courses/' . $courseId)->with('error', $exception->getMessage());
+        }
+    }
+
+    public function updateModule(Request $request, string $moduleId): RedirectResponse
+    {
+        $this->requireCourseEditorAccess();
+
+        try {
+            $courseId = $this->academyWrite->updateModule($moduleId, [
+                'title' => (string) $request->input('title', ''),
+                'description' => (string) $request->input('description', ''),
+                'sort_order' => (int) $request->input('sort_order', 1),
+                'estimated_minutes' => (int) $request->input('estimated_minutes', 15),
+                'pass_score' => (int) $request->input('pass_score', 70),
+                'is_published' => $request->boolean('is_published'),
+            ]);
+
+            return redirect('/admin/courses/' . $courseId)->with('success', 'Модуль сохранён.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
         }
     }
 
@@ -298,8 +388,16 @@ final class AdminController extends BasePageController
     {
         $this->requireCourseEditorAccess();
 
-        $questionIds = preg_split('/[\r\n,]+/', (string) $request->input('question_ids', '')) ?: [];
-        $questionIds = array_values(array_filter(array_map('trim', $questionIds)));
+        $questionIdsInput = $request->input('question_ids', []);
+        if (is_array($questionIdsInput)) {
+            $questionIds = array_values(array_filter(array_map(
+                static fn (mixed $value): string => trim((string) $value),
+                $questionIdsInput,
+            )));
+        } else {
+            $questionIds = preg_split('/[\r\n,]+/', (string) $questionIdsInput) ?: [];
+            $questionIds = array_values(array_filter(array_map('trim', $questionIds)));
+        }
 
         try {
             $this->academyWrite->upsertLessonQuiz(
@@ -331,16 +429,12 @@ final class AdminController extends BasePageController
     {
         $this->requireCourseEditorAccess();
 
-        $options = preg_split('/[\r\n]+/', (string) $request->input('options', '')) ?: [];
-        $options = array_values(array_filter(array_map('trim', $options)));
-        $correctIndexes = preg_split('/,/', (string) $request->input('correct_indexes', '')) ?: [];
-        $correctIndexes = array_values(array_filter(array_map(
-            static fn (string $value): ?int => is_numeric(trim($value)) ? ((int) trim($value)) - 1 : null,
-            $correctIndexes,
-        ), static fn ($value) => $value !== null));
+        $options = $this->normalizeOptionsInput($request->input('options', []));
+        $correctIndexes = $this->normalizeCorrectIndexes($request->input('correct_indexes', []));
 
         try {
             $this->academyWrite->createQuestion([
+                'topic' => (string) $request->input('topic', 'manual'),
                 'prompt' => (string) $request->input('prompt', ''),
                 'question_type' => (string) $request->input('question_type', 'SINGLE'),
                 'explanation' => (string) $request->input('explanation', ''),
@@ -351,6 +445,39 @@ final class AdminController extends BasePageController
             return redirect('/admin/questions')->with('success', 'Вопрос добавлен.');
         } catch (RuntimeException $exception) {
             return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function updateQuestion(Request $request, string $questionId): RedirectResponse
+    {
+        $this->requireCourseEditorAccess();
+
+        try {
+            $this->academyWrite->updateQuestion($questionId, [
+                'topic' => (string) $request->input('topic', 'manual'),
+                'prompt' => (string) $request->input('prompt', ''),
+                'question_type' => (string) $request->input('question_type', 'SINGLE'),
+                'explanation' => (string) $request->input('explanation', ''),
+                'options' => $this->normalizeOptionsInput($request->input('options', [])),
+                'correct_indexes' => $this->normalizeCorrectIndexes($request->input('correct_indexes', [])),
+            ]);
+
+            return redirect('/admin/questions')->with('success', 'Вопрос обновлён.');
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function deleteQuestion(string $questionId): RedirectResponse
+    {
+        $this->requireCourseEditorAccess();
+
+        try {
+            $this->academyWrite->deleteQuestion($questionId);
+
+            return redirect('/admin/questions')->with('success', 'Вопрос удалён.');
+        } catch (RuntimeException $exception) {
+            return redirect('/admin/questions')->with('error', $exception->getMessage());
         }
     }
 
@@ -554,6 +681,19 @@ final class AdminController extends BasePageController
         ]);
     }
 
+    public function deleteMedia(string $assetId): RedirectResponse
+    {
+        $this->requireAdmin();
+
+        try {
+            $this->academyWrite->deleteMedia($assetId);
+
+            return redirect('/admin/media')->with('success', 'Файл удалён из медиатеки.');
+        } catch (RuntimeException $exception) {
+            return redirect('/admin/media')->with('error', $exception->getMessage());
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -574,5 +714,45 @@ final class AdminController extends BasePageController
         abort_unless($user && in_array($user['role_key'] ?? '', ['ADMIN', 'LEADER'], true), 403);
 
         return $user;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeOptionsInput(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_filter(array_map(
+                static fn (mixed $value): string => trim((string) $value),
+                $raw,
+            )));
+        }
+
+        $options = preg_split('/[\r\n]+/', (string) $raw) ?: [];
+
+        return array_values(array_filter(array_map('trim', $options)));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function normalizeCorrectIndexes(mixed $raw): array
+    {
+        $fromArray = is_array($raw);
+        $values = $fromArray ? $raw : (preg_split('/,/', (string) $raw) ?: []);
+
+        return array_values(array_filter(array_map(
+            static function (mixed $value) use ($fromArray): ?int {
+                $trimmed = trim((string) $value);
+                if ($trimmed === '' || !is_numeric($trimmed)) {
+                    return null;
+                }
+
+                $index = (int) $trimmed;
+
+                return $fromArray ? $index : max(0, $index - 1);
+            },
+            $values,
+        ), static fn (?int $value): bool => $value !== null));
     }
 }

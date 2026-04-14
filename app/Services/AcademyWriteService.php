@@ -328,6 +328,12 @@ final class AcademyWriteService
         $categoryId = trim((string) ($data['category_id'] ?? ''));
         $description = trim((string) ($data['description'] ?? ''));
         $targetAudience = trim((string) ($data['target_audience'] ?? ''));
+        $subtitle = trim((string) ($data['subtitle'] ?? ''));
+        $shortDescription = trim((string) ($data['short_description'] ?? ''));
+        $estimatedMinutes = max(0, (int) ($data['estimated_minutes'] ?? 45));
+        $passScore = max(1, min(100, (int) ($data['pass_score'] ?? 70)));
+        $cityIds = $this->normalizeIdList($data['city_ids'] ?? ($data['city_id'] ?? null));
+        $departmentIds = $this->normalizeIdList($data['department_ids'] ?? ($data['department_id'] ?? null));
 
         if ($title === '' || $categoryId === '') {
             throw new RuntimeException('Недостаточно данных для создания курса.');
@@ -335,7 +341,7 @@ final class AcademyWriteService
 
         $slug = $slug !== '' ? $slug : to_slug($title);
         if ($this->db->fetchOne('SELECT id FROM courses WHERE slug = ? LIMIT 1', [$slug]) !== null) {
-            throw new RuntimeException('Курс с таким slug уже существует.');
+            throw new RuntimeException('Курс с таким адресом уже существует.');
         }
 
         $courseId = str_id();
@@ -349,33 +355,34 @@ final class AcademyWriteService
                 $courseId,
                 $slug,
                 $title,
-                $targetAudience !== '' ? $targetAudience : 'Новый курс',
-                $description !== '' ? $description : 'Новый курс без краткого описания.',
+                $subtitle !== '' ? $subtitle : ($targetAudience !== '' ? $targetAudience : 'Новая программа'),
+                $shortDescription !== '' ? $shortDescription : ($description !== '' ? $description : 'Новая программа без краткого описания.'),
                 $description !== '' ? $description : 'Заполните описание курса через редактор.',
                 $title,
-                $description !== '' ? $description : 'Новый курс создан в редакторе.',
+                $shortDescription !== '' ? $shortDescription : ($description !== '' ? $description : 'Новая программа создана в редакторе.'),
                 $targetAudience !== '' ? $targetAudience : 'Сотрудники ЮСИ',
                 '#1264f2',
                 '#0b1d44',
                 'DRAFT',
-                70,
+                $estimatedMinutes,
+                $passScore,
                 $categoryId,
                 $admin['company_id'] ?? null,
                 $adminId,
             ]
         );
 
-        if (!empty($data['city_id'])) {
+        foreach ($cityIds as $cityId) {
             $this->db->execute(
                 'INSERT INTO course_cities (id, course_id, city_id) VALUES (?, ?, ?)',
-                [str_id(), $courseId, $data['city_id']],
+                [str_id(), $courseId, $cityId],
             );
         }
 
-        if (!empty($data['department_id'])) {
+        foreach ($departmentIds as $departmentId) {
             $this->db->execute(
                 'INSERT INTO course_departments (id, course_id, department_id) VALUES (?, ?, ?)',
-                [str_id(), $courseId, $data['department_id']],
+                [str_id(), $courseId, $departmentId],
             );
         }
 
@@ -525,40 +532,90 @@ final class AcademyWriteService
 
     public function updateCourse(string $courseId, array $data): void
     {
+        $existing = $this->db->fetchOne('SELECT id FROM courses WHERE id = ? LIMIT 1', [$courseId]);
+        if ($existing === null) {
+            throw new RuntimeException('Курс не найден.');
+        }
+
         $title = trim((string) ($data['title'] ?? ''));
+        $categoryId = trim((string) ($data['category_id'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $subtitle = trim((string) ($data['subtitle'] ?? ''));
+        $shortDescription = trim((string) ($data['short_description'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $targetAudience = trim((string) ($data['target_audience'] ?? ''));
+        $estimatedMinutes = max(0, (int) ($data['estimated_minutes'] ?? 0));
+        $passScore = max(1, min(100, (int) ($data['pass_score'] ?? 70)));
+        $cityIds = $this->normalizeIdList($data['city_ids'] ?? ($data['city_id'] ?? null));
+        $departmentIds = $this->normalizeIdList($data['department_ids'] ?? ($data['department_id'] ?? null));
+
         if ($title === '') {
             throw new RuntimeException('Название курса обязательно.');
         }
 
+        if ($categoryId === '') {
+            throw new RuntimeException('Выберите категорию курса.');
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        $slugExists = $this->db->fetchOne(
+            'SELECT id FROM courses WHERE slug = ? AND id <> ? LIMIT 1',
+            [$slug, $courseId],
+        );
+        if ($slugExists !== null) {
+            throw new RuntimeException('Курс с таким адресом уже существует.');
+        }
+
         $this->db->execute(
             "UPDATE courses
-             SET title = ?, subtitle = ?, short_description = ?, description = ?, hero_title = ?, hero_description = ?,
-                 target_audience = ?, status = ?, updated_at = NOW()
+             SET slug = ?, title = ?, subtitle = ?, short_description = ?, description = ?, hero_title = ?, hero_description = ?,
+                 target_audience = ?, estimated_minutes = ?, pass_score = ?, category_id = ?, status = ?, updated_at = NOW()
              WHERE id = ?",
             [
+                $slug,
                 $title,
-                trim((string) ($data['subtitle'] ?? '')),
-                trim((string) ($data['short_description'] ?? '')),
-                trim((string) ($data['description'] ?? '')),
+                $subtitle,
+                $shortDescription,
+                $description,
                 $title,
-                trim((string) (($data['short_description'] ?? '') ?: ($data['description'] ?? ''))),
-                trim((string) ($data['target_audience'] ?? '')),
+                $shortDescription !== '' ? $shortDescription : $description,
+                $targetAudience,
+                $estimatedMinutes,
+                $passScore,
+                $categoryId,
                 $data['status'] ?? 'DRAFT',
                 $courseId,
             ]
         );
+
+        $this->db->execute('DELETE FROM course_cities WHERE course_id = ?', [$courseId]);
+        foreach ($cityIds as $cityId) {
+            $this->db->execute(
+                'INSERT INTO course_cities (id, course_id, city_id) VALUES (?, ?, ?)',
+                [str_id(), $courseId, $cityId],
+            );
+        }
+
+        $this->db->execute('DELETE FROM course_departments WHERE course_id = ?', [$courseId]);
+        foreach ($departmentIds as $departmentId) {
+            $this->db->execute(
+                'INSERT INTO course_departments (id, course_id, department_id) VALUES (?, ?, ?)',
+                [str_id(), $courseId, $departmentId],
+            );
+        }
     }
 
     public function createModule(string $courseId, array $data): string
     {
         $title = trim((string) ($data['title'] ?? ''));
         $description = trim((string) ($data['description'] ?? ''));
-        if ($title === '' || $description === '') {
-            throw new RuntimeException('Укажите название и описание модуля.');
+        if ($title === '') {
+            throw new RuntimeException('Укажите название модуля.');
         }
 
         $count = $this->db->fetchOne('SELECT COUNT(*) AS total FROM modules WHERE course_id = ?', [$courseId]);
         $moduleId = str_id();
+        $summary = $description !== '' ? $description : 'Добавьте краткое описание модуля.';
 
         $this->db->execute(
             'INSERT INTO modules (
@@ -568,15 +625,50 @@ final class AcademyWriteService
                 $moduleId,
                 $courseId,
                 $title,
-                $description,
-                $description,
+                $description !== '' ? $description : $summary,
+                $summary,
                 (int) ($count['total'] ?? 0) + 1,
-                15,
-                70,
+                max(1, (int) ($data['estimated_minutes'] ?? 15)),
+                max(1, min(100, (int) ($data['pass_score'] ?? 70))),
             ]
         );
 
         return $moduleId;
+    }
+
+    public function updateModule(string $moduleId, array $data): string
+    {
+        $module = $this->db->fetchOne('SELECT id, course_id FROM modules WHERE id = ? LIMIT 1', [$moduleId]);
+        if ($module === null) {
+            throw new RuntimeException('Модуль не найден.');
+        }
+
+        $title = trim((string) ($data['title'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+
+        if ($title === '') {
+            throw new RuntimeException('Укажите название модуля.');
+        }
+
+        $summary = $description !== '' ? $description : 'Добавьте краткое описание модуля.';
+
+        $this->db->execute(
+            'UPDATE modules
+             SET title = ?, description = ?, summary = ?, sort_order = ?, estimated_minutes = ?, pass_score = ?, is_published = ?, updated_at = NOW()
+             WHERE id = ?',
+            [
+                $title,
+                $description !== '' ? $description : $summary,
+                $summary,
+                max(1, (int) ($data['sort_order'] ?? 1)),
+                max(1, (int) ($data['estimated_minutes'] ?? 15)),
+                max(1, min(100, (int) ($data['pass_score'] ?? 70))),
+                !empty($data['is_published']) ? 1 : 0,
+                $moduleId,
+            ]
+        );
+
+        return (string) $module['course_id'];
     }
 
     public function deleteModule(string $moduleId): string
@@ -758,6 +850,7 @@ final class AcademyWriteService
     {
         $prompt = trim((string) ($data['prompt'] ?? ''));
         $type = trim((string) ($data['question_type'] ?? 'SINGLE'));
+        $topic = trim((string) ($data['topic'] ?? 'manual'));
         $explanation = trim((string) ($data['explanation'] ?? ''));
         $options = $data['options'] ?? [];
         $correctIndexes = $data['correct_indexes'] ?? [];
@@ -769,7 +862,7 @@ final class AcademyWriteService
         $questionId = str_id();
         $this->db->execute(
             'INSERT INTO questions (id, topic, prompt, question_type, explanation, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-            [$questionId, 'manual', $prompt, $type, $explanation],
+            [$questionId, $topic !== '' ? $topic : 'manual', $prompt, $type, $explanation],
         );
 
         foreach (array_values($options) as $index => $option) {
@@ -780,6 +873,158 @@ final class AcademyWriteService
         }
 
         return $questionId;
+    }
+
+    public function updateQuestion(string $questionId, array $data): void
+    {
+        $existing = $this->db->fetchOne('SELECT id FROM questions WHERE id = ? LIMIT 1', [$questionId]);
+        if ($existing === null) {
+            throw new RuntimeException('Вопрос не найден.');
+        }
+
+        $prompt = trim((string) ($data['prompt'] ?? ''));
+        $type = trim((string) ($data['question_type'] ?? 'SINGLE'));
+        $topic = trim((string) ($data['topic'] ?? 'manual'));
+        $explanation = trim((string) ($data['explanation'] ?? ''));
+        $options = array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $data['options'] ?? [],
+        )));
+        $correctIndexes = array_values(array_filter(
+            array_map(static fn (mixed $value): ?int => is_numeric((string) $value) ? (int) $value : null, $data['correct_indexes'] ?? []),
+            static fn (?int $value): bool => $value !== null,
+        ));
+
+        if ($prompt === '' || count($options) < 2) {
+            throw new RuntimeException('Заполните вопрос и минимум два варианта ответа.');
+        }
+
+        $this->db->execute(
+            'UPDATE questions SET topic = ?, prompt = ?, question_type = ?, explanation = ?, updated_at = NOW() WHERE id = ?',
+            [$topic !== '' ? $topic : 'manual', $prompt, $type, $explanation, $questionId],
+        );
+
+        $this->db->execute('DELETE FROM answer_options WHERE question_id = ?', [$questionId]);
+        foreach (array_values($options) as $index => $option) {
+            $this->db->execute(
+                'INSERT INTO answer_options (id, question_id, label, is_correct, sort_order) VALUES (?, ?, ?, ?, ?)',
+                [str_id(), $questionId, $option, in_array($index, $correctIndexes, true) ? 1 : 0, $index + 1],
+            );
+        }
+    }
+
+    public function deleteQuestion(string $questionId): void
+    {
+        $existing = $this->db->fetchOne('SELECT id FROM questions WHERE id = ? LIMIT 1', [$questionId]);
+        if ($existing === null) {
+            throw new RuntimeException('Вопрос не найден.');
+        }
+
+        $linked = $this->db->fetchOne('SELECT id FROM quiz_questions WHERE question_id = ? LIMIT 1', [$questionId]);
+        if ($linked !== null) {
+            throw new RuntimeException('Вопрос используется в тестах. Сначала уберите его из связанного теста.');
+        }
+
+        $this->db->execute('DELETE FROM answer_options WHERE question_id = ?', [$questionId]);
+        $this->db->execute('DELETE FROM questions WHERE id = ?', [$questionId]);
+    }
+
+    public function deleteMedia(string $assetId): void
+    {
+        $asset = $this->db->fetchOne('SELECT id, storage_path FROM media_assets WHERE id = ? LIMIT 1', [$assetId]);
+        if ($asset === null) {
+            throw new RuntimeException('Файл не найден.');
+        }
+
+        $isInUse = $this->db->fetchOne(
+            'SELECT 1
+             FROM (
+                SELECT media_asset_id AS asset_id FROM lesson_videos
+                UNION ALL
+                SELECT asset_id FROM lesson_attachments
+             ) AS links
+             WHERE links.asset_id = ?
+             LIMIT 1',
+            [$assetId],
+        );
+
+        if ($isInUse !== null) {
+            throw new RuntimeException('Файл используется в уроках. Сначала отвяжите его от материалов курса.');
+        }
+
+        $absolutePath = $this->absoluteStoragePath((string) $asset['storage_path']);
+        if (is_file($absolutePath)) {
+            @unlink($absolutePath);
+        }
+
+        $this->db->execute('DELETE FROM media_assets WHERE id = ?', [$assetId]);
+    }
+
+    public function createCourseCategory(array $data): string
+    {
+        $title = trim((string) ($data['title'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $sortOrder = (int) ($data['sort_order'] ?? 0);
+
+        if ($title === '') {
+            throw new RuntimeException('Укажите название категории.');
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        if ($this->db->fetchOne('SELECT id FROM course_categories WHERE slug = ? LIMIT 1', [$slug]) !== null) {
+            throw new RuntimeException('Категория с таким адресом уже существует.');
+        }
+
+        $categoryId = str_id();
+        $this->db->execute(
+            'INSERT INTO course_categories (id, slug, title, description, sort_order) VALUES (?, ?, ?, ?, ?)',
+            [$categoryId, $slug, $title, $this->nullable($description), $sortOrder],
+        );
+
+        return $categoryId;
+    }
+
+    public function updateCourseCategory(string $categoryId, array $data): void
+    {
+        $existing = $this->db->fetchOne('SELECT id FROM course_categories WHERE id = ? LIMIT 1', [$categoryId]);
+        if ($existing === null) {
+            throw new RuntimeException('Категория не найдена.');
+        }
+
+        $title = trim((string) ($data['title'] ?? ''));
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $sortOrder = (int) ($data['sort_order'] ?? 0);
+
+        if ($title === '') {
+            throw new RuntimeException('Укажите название категории.');
+        }
+
+        $slug = $slug !== '' ? to_slug($slug) : to_slug($title);
+        if ($this->db->fetchOne('SELECT id FROM course_categories WHERE slug = ? AND id <> ? LIMIT 1', [$slug, $categoryId]) !== null) {
+            throw new RuntimeException('Категория с таким адресом уже существует.');
+        }
+
+        $this->db->execute(
+            'UPDATE course_categories SET slug = ?, title = ?, description = ?, sort_order = ? WHERE id = ?',
+            [$slug, $title, $this->nullable($description), $sortOrder, $categoryId],
+        );
+    }
+
+    public function deleteCourseCategory(string $categoryId): void
+    {
+        $existing = $this->db->fetchOne('SELECT id FROM course_categories WHERE id = ? LIMIT 1', [$categoryId]);
+        if ($existing === null) {
+            throw new RuntimeException('Категория не найдена.');
+        }
+
+        $linked = $this->db->fetchOne('SELECT id FROM courses WHERE category_id = ? LIMIT 1', [$categoryId]);
+        if ($linked !== null) {
+            throw new RuntimeException('В категории есть курсы. Сначала перенесите их в другую категорию.');
+        }
+
+        $this->db->execute('DELETE FROM course_categories WHERE id = ?', [$categoryId]);
     }
 
     public function assignCourse(string $userId, string $courseId, ?string $assignedById = null): string
@@ -1595,6 +1840,20 @@ final class AcademyWriteService
         return implode(',', array_fill(0, $count, '?'));
     }
 
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeIdList(mixed $value): array
+    {
+        $items = is_array($value) ? $value : [$value];
+        $normalized = array_values(array_filter(array_map(
+            static fn (mixed $item): string => trim((string) $item),
+            $items,
+        )));
+
+        return array_values(array_unique($normalized));
+    }
+
     private function nullable(mixed $value): mixed
     {
         if (!is_string($value)) {
@@ -1608,5 +1867,13 @@ final class AcademyWriteService
     private function now(): string
     {
         return date('Y-m-d H:i:s');
+    }
+
+    private function absoluteStoragePath(string $relativePath): string
+    {
+        $normalized = str_replace(['\\', '..'], ['/', ''], $relativePath);
+        $normalized = trim($normalized, '/');
+
+        return storage_path('app/public/' . $normalized);
     }
 }

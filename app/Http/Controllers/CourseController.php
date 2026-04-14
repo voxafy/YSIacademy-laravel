@@ -41,6 +41,11 @@ final class CourseController extends BasePageController
             abort(404);
         }
 
+        $roleKey = (string) ($user['role_key'] ?? '');
+        if (($course['status'] ?? 'DRAFT') !== 'PUBLISHED' && !in_array($roleKey, ['ADMIN', 'LEADER'], true)) {
+            abort(404);
+        }
+
         return $this->render('pages/courses/show', [
             'title' => $course['title'],
             'course' => $course,
@@ -59,6 +64,10 @@ final class CourseController extends BasePageController
 
         if ($data === null) {
             return redirect('/courses/' . $slug);
+        }
+
+        if ((($data['course']['status'] ?? 'DRAFT') !== 'PUBLISHED') && !in_array((string) ($user['role_key'] ?? ''), ['ADMIN', 'LEADER'], true)) {
+            abort(404);
         }
 
         $enrollment = $data['course']['enrollment'] ?? null;

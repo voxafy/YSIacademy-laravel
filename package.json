@@ -3,8 +3,10 @@
     "private": true,
     "scripts": {
         "build": "gulp build",
+        "watch": "gulp watch",
         "dev": "gulp watch",
-        "gulp": "gulp"
+        "gulp": "gulp",
+        "screenshots:export": "node scripts/export_service_screenshots.mjs"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.21",
@@ -16,6 +18,7 @@
         "gulp-sass": "^6.0.1",
         "gulp-sourcemaps": "^3.0.0",
         "gulp-terser": "^2.1.0",
+        "playwright": "^1.59.1",
         "sass": "^1.93.2"
     }
 }

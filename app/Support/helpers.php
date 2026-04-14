@@ -74,6 +74,7 @@ if (!function_exists('nav_sections_for')) {
                 ['href' => '/knowledge-base', 'label' => 'База знаний', 'patterns' => ['/knowledge-base', '/knowledge-base/*']],
                 ['href' => '/admin', 'label' => 'Обзор', 'patterns' => ['/admin']],
                 ['href' => '/admin/courses', 'label' => 'Курсы', 'patterns' => ['/admin/courses', '/admin/courses/*', '/admin/lessons/*']],
+                ['href' => '/admin/course-categories', 'label' => 'Категории', 'patterns' => ['/admin/course-categories', '/admin/course-categories/*']],
                 ['href' => '/admin/users', 'label' => 'Пользователи', 'patterns' => ['/admin/users', '/admin/users/*']],
                 ['href' => '/admin/assignments', 'label' => 'Назначения', 'patterns' => ['/admin/assignments']],
                 ['href' => '/admin/results', 'label' => 'Результаты', 'patterns' => ['/admin/results', '/admin/results/*']],
@@ -235,6 +236,18 @@ if (!function_exists('lesson_type_badge_class')) {
     }
 }
 
+if (!function_exists('question_type_label')) {
+    function question_type_label(string $type): string
+    {
+        return match ($type) {
+            'MULTIPLE' => 'Несколько верных',
+            'BOOLEAN' => 'Верно / неверно',
+            'CASE' => 'Кейс',
+            default => 'Один верный',
+        };
+    }
+}
+
 if (!function_exists('knowledge_article_type_label')) {
     function knowledge_article_type_label(string $type): string
     {
@@ -301,6 +314,24 @@ if (!function_exists('format_percent')) {
     function format_percent(int|float $value): string
     {
         return (string) round((float) $value) . '%';
+    }
+}
+
+if (!function_exists('format_bytes')) {
+    function format_bytes(int|float|null $value): string
+    {
+        $bytes = max(0, (float) ($value ?? 0));
+        $units = ['Б', 'КБ', 'МБ', 'ГБ'];
+        $index = 0;
+
+        while ($bytes >= 1024 && $index < count($units) - 1) {
+            $bytes /= 1024;
+            $index++;
+        }
+
+        $precision = $index === 0 ? 0 : 1;
+
+        return number_format($bytes, $precision, '.', ' ') . ' ' . $units[$index];
     }
 }
 

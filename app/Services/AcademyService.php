@@ -39,16 +39,12 @@ final class AcademyService
     public function getPublishedCourses(?array $user = null): array
     {
         $params = [];
-        $where = [];
+        $where = [
+            "c.status = 'PUBLISHED'",
+            'COALESCE(c.is_template, 0) = 0',
+        ];
 
-        if ($user === null) {
-            $where[] = "c.status = 'PUBLISHED'";
-        } elseif (($user['role_key'] ?? '') === 'ADMIN') {
-            $where[] = '1=1';
-        } elseif (($user['role_key'] ?? '') === 'LEADER') {
-            $where[] = "c.status = 'PUBLISHED'";
-        } else {
-            $where[] = "c.status = 'PUBLISHED'";
+        if ($user !== null && ($user['role_key'] ?? '') === 'STUDENT') {
             $where[] = '(NOT EXISTS (SELECT 1 FROM course_cities cc WHERE cc.course_id = c.id) OR EXISTS (SELECT 1 FROM course_cities cc WHERE cc.course_id = c.id AND cc.city_id = ?))';
             $where[] = '(NOT EXISTS (SELECT 1 FROM course_departments cd WHERE cd.course_id = c.id) OR EXISTS (SELECT 1 FROM course_departments cd WHERE cd.course_id = c.id AND cd.department_id = ?))';
             $params[] = $user['city_id'] ?? '';
@@ -332,6 +328,11 @@ final class AcademyService
         foreach ($typeRows as $row) {
             $typeMap[(string) $row['article_type']] = (int) $row['total'];
         }
+
+        $categoryRows = array_values(array_filter(
+            $categoryRows,
+            static fn (array $row): bool => (int) ($row['articles_count'] ?? 0) > 0,
+        ));
 
         $where = ["ka.status = 'PUBLISHED'", sprintf('ka.visibility_scope IN (%s)', $this->placeholders(count($scopes)))];
         $params = $scopes;
@@ -868,8 +869,8 @@ final class AcademyService
                  ORDER BY u.full_name ASC'
             ),
             'courses' => $this->getAdminCoursesList(),
-            'categories' => $this->db->fetchAll('SELECT * FROM course_categories ORDER BY sort_order ASC'),
-            'media' => $this->db->fetchAll('SELECT * FROM media_assets ORDER BY created_at DESC LIMIT 50'),
+            'categories' => $this->getCourseCategoryResources(),
+            'media' => $this->getAdminMediaLibrary(),
             'questions' => $this->getQuestionBank(),
             'enrollments' => $this->db->fetchAll(
                 'SELECT e.*, u.full_name, r.key AS role_key, r.name AS role_name, c.title AS course_title, p.completion_percent
@@ -881,6 +882,51 @@ final class AcademyService
                  ORDER BY e.assigned_at DESC'
             ),
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCourseCategoryResources(): array
+    {
+        return $this->db->fetchAll(
+            'SELECT cc.*,
+                    COUNT(c.id) AS courses_count,
+                    SUM(CASE WHEN c.status = "PUBLISHED" THEN 1 ELSE 0 END) AS published_count
+             FROM course_categories cc
+             LEFT JOIN courses c ON c.category_id = cc.id
+             GROUP BY cc.id, cc.slug, cc.title, cc.description, cc.sort_order
+             ORDER BY cc.sort_order ASC, cc.title ASC'
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAdminMediaLibrary(): array
+    {
+        return $this->db->fetchAll(
+            'SELECT ma.*,
+                    c.title AS course_title,
+                    u.full_name AS uploader_name,
+                    lv.lesson_id AS video_lesson_id,
+                    l_video.title AS video_lesson_title,
+                    la.lesson_id AS attachment_lesson_id,
+                    l_file.title AS attachment_lesson_title,
+                    CASE
+                        WHEN lv.lesson_id IS NOT NULL THEN 1
+                        WHEN la.lesson_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_in_use
+             FROM media_assets ma
+             LEFT JOIN courses c ON c.id = ma.course_id
+             LEFT JOIN users u ON u.id = ma.uploaded_by_id
+             LEFT JOIN lesson_videos lv ON lv.media_asset_id = ma.id
+             LEFT JOIN lessons l_video ON l_video.id = lv.lesson_id
+             LEFT JOIN lesson_attachments la ON la.asset_id = ma.id
+             LEFT JOIN lessons l_file ON l_file.id = la.lesson_id
+             ORDER BY ma.created_at DESC'
+        );
     }
 
     /**
@@ -982,6 +1028,15 @@ final class AcademyService
             throw new RuntimeException('Course not found.');
         }
 
+        $course['city_ids'] = array_map(
+            static fn (array $row): string => (string) $row['city_id'],
+            $this->db->fetchAll('SELECT city_id FROM course_cities WHERE course_id = ? ORDER BY city_id ASC', [$courseId]),
+        );
+        $course['department_ids'] = array_map(
+            static fn (array $row): string => (string) $row['department_id'],
+            $this->db->fetchAll('SELECT department_id FROM course_departments WHERE course_id = ? ORDER BY department_id ASC', [$courseId]),
+        );
+
         $modules = $this->db->fetchAll('SELECT * FROM modules WHERE course_id = ? ORDER BY sort_order ASC', [$courseId]);
         foreach ($modules as &$module) {
             $module['lessons'] = $this->db->fetchAll(
@@ -1036,6 +1091,10 @@ final class AcademyService
             [$lessonId],
         );
         $lesson['quiz'] = empty($lesson['quiz_id']) ? null : $this->getQuizById((string) $lesson['quiz_id']);
+        $lesson['selected_question_ids'] = array_map(
+            static fn (array $item): string => (string) $item['question_id'],
+            $lesson['quiz']['questions'] ?? [],
+        );
 
         return $lesson;
     }
@@ -1063,6 +1122,11 @@ final class AcademyService
                 'SELECT * FROM quiz_questions WHERE question_id = ?',
                 [$question['id']],
             );
+            $question['usage_count'] = count($question['quiz_links']);
+            $question['correct_count'] = count(array_filter(
+                $question['options'],
+                static fn (array $option): bool => (int) ($option['is_correct'] ?? 0) === 1,
+            ));
         }
         unset($question);
 

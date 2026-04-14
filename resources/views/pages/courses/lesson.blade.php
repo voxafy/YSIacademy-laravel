@@ -22,6 +22,7 @@ $courseProgress = $enrollment
     ? (int) ($enrollment['completion_percent'] ?? 0)
     : (int) round(($currentLessonNumber / max(1, $totalLessons)) * 100);
 ?>
+
 <section class="grid lesson-layout">
     <aside class="lesson-sidebar-shell" data-lesson-nav>
         <div class="card lesson-sidebar-compact">
@@ -94,17 +95,28 @@ $courseProgress = $enrollment
     </aside>
 
     <div class="card-stack lesson-content">
-        <article class="card" style="padding: 28px;">
-            <p class="section-kicker"><?= e($lesson['lesson_type'] === 'QUIZ' ? 'Проверка знаний' : 'Урок') ?></p>
-            <h1 class="section-title section-title--small"><?= e($lesson['title']) ?></h1>
-            <p class="section-text"><?= e($lesson['description']) ?></p>
-            <div class="lesson-meta-row">
-                <span class="badge badge-muted">Шаг <?= e((string) $currentLessonNumber) ?> из <?= e((string) $totalLessons) ?></span>
+        <article class="card lesson-stage-card">
+            <div class="lesson-stage-card__head">
+                <div>
+                    <p class="section-kicker"><?= e($lesson['lesson_type'] === 'QUIZ' ? 'Проверка знаний' : 'Урок') ?></p>
+                    <h1 class="section-title section-title--small"><?= e($lesson['title']) ?></h1>
+                    <p class="section-text"><?= e((string) $lesson['description']) ?></p>
+                </div>
+                <div class="lesson-stage-card__meta">
+                    <span class="badge badge-muted">Шаг <?= e((string) $currentLessonNumber) ?> из <?= e((string) $totalLessons) ?></span>
+                    <span class="<?= lesson_type_badge_class((string) $lesson['lesson_type']) ?>"><?= e(lesson_type_label((string) $lesson['lesson_type'])) ?></span>
+                </div>
             </div>
         </article>
 
         <?php if ($lesson['video']): ?>
             <article class="card content-block">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Видео</p>
+                        <h2 class="section-title section-title--small">Видеоматериал</h2>
+                    </div>
+                </div>
                 <video class="video-frame" controls src="<?= media_url((string) $lesson['video']['asset_id']) ?>"></video>
             </article>
         <?php endif; ?>
@@ -115,17 +127,16 @@ $courseProgress = $enrollment
                     <div>
                         <p class="section-kicker">Тест</p>
                         <h2 class="section-title section-title--small"><?= e($lesson['quiz']['title']) ?></h2>
+                        <p class="section-text"><?= e((string) ($lesson['quiz']['description'] ?? '')) ?></p>
                     </div>
+                    <span class="badge badge-warning">Проходной балл <?= e((string) $lesson['quiz']['pass_score']) ?>%</span>
                 </div>
                 <form action="<?= url('/quizzes/' . $lesson['quiz']['id'] . '/submit') ?>" method="post" class="form-grid">
                     <?= csrf_field() ?>
-                    <div class="list-item">
-                        Проходной балл: <strong><?= e((string) $lesson['quiz']['pass_score']) ?>%</strong>
-                    </div>
                     <?php foreach ($lesson['quiz']['questions'] as $question): ?>
                         <section class="course-item">
                             <p class="section-kicker">Вопрос <?= e((string) $question['sort_order']) ?></p>
-                            <h3 style="margin: 10px 0 0; font-size: 1.2rem;"><?= e($question['prompt']) ?></h3>
+                            <h3 class="employee-course-card__title"><?= e($question['prompt']) ?></h3>
                             <div class="card-stack" style="margin-top: 16px;">
                                 <?php if (in_array($question['question_type'], ['SINGLE', 'BOOLEAN', 'CASE'], true)): ?>
                                     <?php foreach ($question['options'] as $option): ?>
@@ -160,6 +171,7 @@ $courseProgress = $enrollment
                 <?php if (trim((string) ($block['body'] ?? '')) === '' && trim((string) ($block['title'] ?? '')) === '') continue; ?>
                 <article class="card content-block">
                     <?php if (!empty($block['title'])): ?>
+                        <p class="section-kicker"><?= e($block['block_type'] === 'RULES' ? 'Правила' : ($block['block_type'] === 'MISTAKES' ? 'Ошибки' : 'Материал')) ?></p>
                         <h2 class="section-title section-title--small"><?= e($block['title']) ?></h2>
                     <?php endif; ?>
                     <div class="markdown"><?= markdown_html((string) $block['body']) ?></div>
@@ -168,11 +180,23 @@ $courseProgress = $enrollment
 
             <?php if (!empty($lesson['attachments'])): ?>
                 <article class="card content-block">
-                    <h2 class="section-title section-title--small">Материалы</h2>
-                    <div class="grid grid-2">
+                    <div class="section-header">
+                        <div>
+                            <p class="section-kicker">Материалы</p>
+                            <h2 class="section-title section-title--small">Файлы урока</h2>
+                        </div>
+                    </div>
+                    <div class="card-stack">
                         <?php foreach ($lesson['attachments'] as $attachment): ?>
-                            <a href="<?= media_url((string) $attachment['asset_id']) ?>" class="list-item" target="_blank" rel="noreferrer">
-                                <?= e($attachment['label'] ?: $attachment['original_name']) ?>
+                            <a href="<?= media_url((string) $attachment['asset_id']) ?>" class="media-library-item" target="_blank" rel="noreferrer">
+                                <div>
+                                    <strong><?= e($attachment['label'] ?: $attachment['original_name']) ?></strong>
+                                    <div class="media-library-item__meta">
+                                        <span><?= e((string) ($attachment['mime_type'] ?: 'Файл')) ?></span>
+                                        <span><?= e(format_bytes((int) ($attachment['size_bytes'] ?? 0))) ?></span>
+                                    </div>
+                                </div>
+                                <span class="btn btn-ghost btn-sm">Открыть</span>
                             </a>
                         <?php endforeach; ?>
                     </div>
@@ -184,8 +208,9 @@ $courseProgress = $enrollment
                     <?= csrf_field() ?>
                     <div class="section-header">
                         <div>
-                            <h2 class="section-title section-title--small">Завершение урока</h2>
-                            <p class="section-text">После изучения материала отметьте урок как пройденный.</p>
+                            <p class="section-kicker">Завершение</p>
+                            <h2 class="section-title section-title--small">Отметить урок как пройденный</h2>
+                            <p class="section-text">После изучения материала сохраните текущий шаг, чтобы обновить прогресс и перейти дальше.</p>
                         </div>
                         <button class="btn btn-primary" type="submit">Урок пройден</button>
                     </div>

@@ -59,6 +59,7 @@ Route::middleware('role:ADMIN,LEADER')->prefix('admin')->name('admin.')->group(f
     Route::get('/courses/{courseId}', [AdminController::class, 'editCourse'])->name('courses.show');
     Route::post('/courses/{courseId}', [AdminController::class, 'updateCourse'])->name('courses.update');
     Route::post('/courses/{courseId}/modules', [AdminController::class, 'storeModule'])->name('modules.store');
+    Route::post('/modules/{moduleId}', [AdminController::class, 'updateModule'])->name('modules.update');
     Route::post('/modules/{moduleId}/delete', [AdminController::class, 'deleteModule'])->name('modules.delete');
     Route::post('/modules/{moduleId}/lessons', [AdminController::class, 'storeLesson'])->name('lessons.store');
     Route::get('/lessons/{lessonId}', [AdminController::class, 'editLesson'])->name('lessons.show');
@@ -71,10 +72,16 @@ Route::middleware('role:ADMIN,LEADER')->prefix('admin')->name('admin.')->group(f
     Route::post('/lessons/{lessonId}/attachments/{assetId}/delete', [MediaController::class, 'deleteLessonAttachment'])->name('lessons.attachments.delete');
     Route::get('/questions', [AdminController::class, 'questions'])->name('questions.index');
     Route::post('/questions', [AdminController::class, 'storeQuestion'])->name('questions.store');
+    Route::post('/questions/{questionId}', [AdminController::class, 'updateQuestion'])->name('questions.update');
+    Route::post('/questions/{questionId}/delete', [AdminController::class, 'deleteQuestion'])->name('questions.delete');
 });
 
 Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/course-categories', [AdminController::class, 'courseCategories'])->name('course-categories.index');
+    Route::post('/course-categories', [AdminController::class, 'storeCourseCategory'])->name('course-categories.store');
+    Route::post('/course-categories/{categoryId}', [AdminController::class, 'updateCourseCategory'])->name('course-categories.update');
+    Route::post('/course-categories/{categoryId}/delete', [AdminController::class, 'deleteCourseCategory'])->name('course-categories.delete');
     Route::get('/knowledge-base', [AdminController::class, 'knowledgeBase'])->name('knowledge.index');
     Route::post('/knowledge-base/categories', [AdminController::class, 'storeKnowledgeCategory'])->name('knowledge.categories.store');
     Route::post('/knowledge-base/categories/{categoryId}', [AdminController::class, 'updateKnowledgeCategory'])->name('knowledge.categories.update');
@@ -92,6 +99,7 @@ Route::middleware('role:ADMIN')->prefix('admin')->name('admin.')->group(function
     Route::get('/results', [AdminController::class, 'results'])->name('results.index');
     Route::get('/results/{userId}', [AdminController::class, 'resultDetail'])->name('results.show');
     Route::get('/media', [AdminController::class, 'media'])->name('media.index');
+    Route::post('/media/{assetId}/delete', [AdminController::class, 'deleteMedia'])->name('media.delete');
 });
 
 Route::get('/media/{assetId}', [MediaController::class, 'show'])->name('media.show');

@@ -1,6 +1,7 @@
 <?php
 $headerUser = current_user();
 $navItems = nav_sections_for($headerUser);
+$isAuthenticated = $headerUser !== null;
 ?>
 <header class="site-header" data-hide-on-scroll>
     <div class="container">
@@ -16,7 +17,7 @@ $navItems = nav_sections_for($headerUser);
             </div>
 
             <?php if ($navItems !== []): ?>
-                <nav class="site-header__nav" aria-label="Основные разделы">
+                <nav class="site-header__nav site-header__nav--desktop" aria-label="Основные разделы">
                     <?php foreach ($navItems as $item): ?>
                         <a href="<?= url($item['href']) ?>" class="nav-pill <?= nav_item_is_active($item) ? 'is-active' : '' ?>">
                             <?= e($item['label']) ?>
@@ -24,7 +25,7 @@ $navItems = nav_sections_for($headerUser);
                     <?php endforeach; ?>
                 </nav>
             <?php else: ?>
-                <div class="site-header__nav site-header__nav--empty" aria-hidden="true"></div>
+                <div class="site-header__nav site-header__nav--desktop site-header__nav--empty" aria-hidden="true"></div>
             <?php endif; ?>
 
             <div class="site-header__actions">
@@ -33,8 +34,8 @@ $navItems = nav_sections_for($headerUser);
                     <span class="theme-icon theme-icon--dark">☾</span>
                 </button>
 
-                <?php if ($headerUser): ?>
-                    <div class="user-menu" data-user-menu>
+                <?php if ($isAuthenticated): ?>
+                    <div class="user-menu site-header__desktop-user" data-user-menu>
                         <button type="button" class="user-pill user-menu__toggle" data-user-menu-toggle aria-expanded="false">
                             <span class="user-pill__avatar"><?= e(initials((string) $headerUser['full_name'])) ?></span>
                             <span class="user-pill__body">
@@ -54,10 +55,60 @@ $navItems = nav_sections_for($headerUser);
                         </div>
                     </div>
                 <?php else: ?>
-                    <a href="<?= url('/login') ?>" class="btn btn-ghost">Войти</a>
-                    <a href="<?= url('/register') ?>" class="btn btn-primary">Зарегистрироваться</a>
+                    <a href="<?= url('/login') ?>" class="btn btn-ghost site-header__desktop-link">Войти</a>
+                    <a href="<?= url('/register') ?>" class="btn btn-primary site-header__desktop-link">Зарегистрироваться</a>
+                <?php endif; ?>
+
+                <?php if ($navItems !== [] || !$isAuthenticated): ?>
+                    <button type="button" class="icon-button site-header__menu-toggle" data-mobile-nav-toggle aria-expanded="false" aria-controls="mobile-nav-panel" aria-label="Открыть меню">
+                        ☰
+                    </button>
                 <?php endif; ?>
             </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" hidden data-mobile-nav-backdrop></div>
+    <div class="mobile-nav-panel" id="mobile-nav-panel" hidden data-mobile-nav-panel>
+        <div class="mobile-nav-panel__header">
+            <span class="section-kicker">Навигация</span>
+            <button type="button" class="mobile-nav-panel__close" data-mobile-nav-close aria-label="Закрыть меню">×</button>
+        </div>
+
+        <?php if ($navItems !== []): ?>
+            <nav class="mobile-nav-panel__nav" aria-label="Мобильная навигация">
+                <?php foreach ($navItems as $item): ?>
+                    <a href="<?= url($item['href']) ?>" class="mobile-nav-link <?= nav_item_is_active($item) ? 'is-active' : '' ?>">
+                        <span><?= e($item['label']) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+        <?php endif; ?>
+
+        <div class="mobile-nav-panel__footer">
+            <?php if ($isAuthenticated): ?>
+                <div class="mobile-nav-user">
+                    <span class="user-pill__avatar"><?= e(initials((string) $headerUser['full_name'])) ?></span>
+                    <div class="mobile-nav-user__body">
+                        <strong><?= e($headerUser['full_name']) ?></strong>
+                        <span class="<?= role_text_class((string) $headerUser['role_key']) ?>">
+                            <?= e(role_label((string) $headerUser['role_key'])) ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="mobile-nav-panel__actions">
+                    <a href="<?= url('/profile') ?>" class="btn btn-ghost">Профиль</a>
+                    <form action="<?= url('/logout') ?>" method="post">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-primary">Выйти</button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <div class="mobile-nav-panel__actions">
+                    <a href="<?= url('/login') ?>" class="btn btn-ghost">Войти</a>
+                    <a href="<?= url('/register') ?>" class="btn btn-primary">Зарегистрироваться</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </header>

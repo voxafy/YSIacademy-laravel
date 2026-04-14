@@ -4,7 +4,6 @@ $related = $articleData['related'] ?? [];
 $faq = $articleData['faq'] ?? [];
 $categories = $knowledgeBase['categories'] ?? [];
 $navigationArticles = $knowledgeBase['articles'] ?? [];
-$isAdmin = (($user['role_key'] ?? '') === 'ADMIN');
 $navigationCategories = [];
 
 foreach ($categories as $category) {
@@ -27,28 +26,25 @@ if (!empty($article['excerpt'])) {
     $articleSections[] = ['href' => '#kb-article-lead', 'label' => 'Кратко о материале'];
 }
 $articleSections[] = ['href' => '#kb-article-body', 'label' => 'Основной материал'];
-if (($article['keywords'] ?? []) !== []) {
-    $articleSections[] = ['href' => '#kb-article-keywords', 'label' => 'Ключевые темы'];
-}
 if ($related !== []) {
-    $articleSections[] = ['href' => '#kb-article-related', 'label' => 'Похожие материалы'];
+    $articleSections[] = ['href' => '#kb-article-related', 'label' => 'См. также'];
 }
 if ($faq !== []) {
-    $articleSections[] = ['href' => '#kb-article-faq', 'label' => 'Частые вопросы'];
+    $articleSections[] = ['href' => '#kb-article-faq', 'label' => 'FAQ'];
 }
 ?>
 
 <section class="section-header kb-help-header">
     <div>
         <p class="section-kicker">База знаний</p>
-        <h1 class="section-title section-title--small">Содержание справки</h1>
-        <p class="section-text">Страница статьи оформлена как справочный центр: с навигацией по разделам, основной зоной чтения и правой колонкой быстрого перехода по материалу.</p>
+        <h1 class="section-title section-title--small"><?= e($article['title']) ?></h1>
+        <p class="section-text"><?= e((string) ($article['excerpt'] ?: 'Материал из справочника СтройТех с ответами на рабочие вопросы и пояснениями по процессам.')) ?></p>
     </div>
 </section>
 
 <section class="kb-help-shell kb-help-shell--article">
     <aside class="card kb-help-nav">
-        <h2 class="kb-help-nav__title">Содержание справки</h2>
+        <h2 class="kb-help-nav__title">Содержание</h2>
         <div class="kb-help-tree kb-help-tree--full">
             <?php foreach ($navigationCategories as $category): ?>
                 <section class="kb-help-group">
@@ -77,7 +73,6 @@ if ($faq !== []) {
                         <span class="badge badge-muted"><?= e($article['category']['title']) ?></span>
                         <span class="badge badge-muted"><?= e(knowledge_visibility_label((string) $article['visibility_scope'])) ?></span>
                     </div>
-                    <h2 class="kb-help-article__title"><?= e($article['title']) ?></h2>
                     <div class="kb-help-article__meta">
                         <span>Обновлено <?= e(format_date((string) $article['updated_at'])) ?></span>
                         <?php if (!empty($article['estimated_minutes'])): ?>
@@ -87,7 +82,7 @@ if ($faq !== []) {
                 </div>
                 <div class="kb-help-article__actions">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="window.print()">Печать статьи</button>
-                    <a href="<?= url('/knowledge-base') ?>" class="btn btn-primary btn-sm">К содержанию справки</a>
+                    <a href="<?= url('/knowledge-base') ?>" class="btn btn-primary btn-sm">К базе знаний</a>
                 </div>
             </div>
 
@@ -100,23 +95,12 @@ if ($faq !== []) {
             <div id="kb-article-body" class="kb-help-article__prose kb-article-body">
                 <?= markdown_html((string) $article['body']) ?>
             </div>
-
-            <?php if (($article['keywords'] ?? []) !== []): ?>
-                <section id="kb-article-keywords" class="kb-help-article__section">
-                    <h3 class="kb-help-article__section-title">Ключевые темы</h3>
-                    <div class="kb-keywords">
-                        <?php foreach ($article['keywords'] as $keyword): ?>
-                            <span class="kb-keyword"><?= e($keyword) ?></span>
-                        <?php endforeach; ?>
-                    </div>
-                </section>
-            <?php endif; ?>
         </article>
 
-        <?php if ($related !== []): ?>
+        <?php if ($related !== []) : ?>
             <article id="kb-article-related" class="card kb-side-card">
-                <p class="section-kicker">Похожие материалы</p>
-                <h2 class="section-title section-title--small">Что ещё посмотреть</h2>
+                <p class="section-kicker">См. также</p>
+                <h2 class="section-title section-title--small">Похожие материалы</h2>
                 <div class="kb-link-list">
                     <?php foreach ($related as $item): ?>
                         <a href="<?= url('/knowledge-base/' . $item['slug']) ?>" class="kb-link-card">
@@ -128,10 +112,10 @@ if ($faq !== []) {
             </article>
         <?php endif; ?>
 
-        <?php if ($faq !== []): ?>
+        <?php if ($faq !== []) : ?>
             <article id="kb-article-faq" class="card kb-side-card">
                 <p class="section-kicker">FAQ</p>
-                <h2 class="section-title section-title--small">Частые вопросы рядом по теме</h2>
+                <h2 class="section-title section-title--small">Связанные вопросы</h2>
                 <div class="kb-link-list">
                     <?php foreach ($faq as $item): ?>
                         <a href="<?= url('/knowledge-base/' . $item['slug']) ?>" class="kb-link-card">

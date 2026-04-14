@@ -3,6 +3,10 @@
     const themeToggles = Array.from(document.querySelectorAll('[data-theme-toggle]'));
     const header = document.querySelector('[data-hide-on-scroll]');
     const userMenus = Array.from(document.querySelectorAll('[data-user-menu]'));
+    const mobileNavPanel = document.querySelector('[data-mobile-nav-panel]');
+    const mobileNavBackdrop = document.querySelector('[data-mobile-nav-backdrop]');
+    const mobileNavToggles = Array.from(document.querySelectorAll('[data-mobile-nav-toggle]'));
+    const mobileNavClosers = Array.from(document.querySelectorAll('[data-mobile-nav-close]'));
 
     function readStoredTheme() {
         try {
@@ -85,6 +89,47 @@
                 panel.hidden = true;
             }
         });
+    });
+
+    function setMobileNavOpen(isOpen) {
+        if (!mobileNavPanel) {
+            return;
+        }
+
+        mobileNavPanel.hidden = !isOpen;
+        if (mobileNavBackdrop) {
+            mobileNavBackdrop.hidden = !isOpen;
+        }
+
+        document.body.classList.toggle('mobile-nav-open', isOpen);
+        mobileNavToggles.forEach(function (toggle) {
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
+
+    mobileNavToggles.forEach(function (toggle) {
+        toggle.addEventListener('click', function () {
+            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+            setMobileNavOpen(!isOpen);
+        });
+    });
+
+    mobileNavClosers.forEach(function (button) {
+        button.addEventListener('click', function () {
+            setMobileNavOpen(false);
+        });
+    });
+
+    if (mobileNavBackdrop) {
+        mobileNavBackdrop.addEventListener('click', function () {
+            setMobileNavOpen(false);
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && mobileNavPanel && !mobileNavPanel.hidden) {
+            setMobileNavOpen(false);
+        }
     });
 
     let lastY = window.scrollY;
@@ -293,6 +338,38 @@
         });
 
         document.body.classList.remove('lesson-nav-open');
+    });
+
+    document.querySelectorAll('[data-view-group]').forEach(function (group) {
+        const groupName = group.getAttribute('data-view-group');
+        const buttons = Array.from(group.querySelectorAll('[data-view-toggle]'));
+        const panels = Array.from(document.querySelectorAll('[data-view-panel][data-view-group="' + groupName + '"]'));
+
+        if (buttons.length === 0 || panels.length === 0) {
+            return;
+        }
+
+        function activate(view) {
+            buttons.forEach(function (button) {
+                button.classList.toggle('is-active', button.getAttribute('data-view-toggle') === view);
+            });
+
+            panels.forEach(function (panel) {
+                panel.hidden = panel.getAttribute('data-view-panel') !== view;
+            });
+        }
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                activate(button.getAttribute('data-view-toggle'));
+            });
+        });
+
+        const defaultButton = buttons.find(function (button) {
+            return button.classList.contains('is-active');
+        }) || buttons[0];
+
+        activate(defaultButton.getAttribute('data-view-toggle'));
     });
 
     document.querySelectorAll('[data-table-search]').forEach(function (input) {

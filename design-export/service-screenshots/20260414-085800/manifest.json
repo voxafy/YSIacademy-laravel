@@ -1,0 +1,638 @@
+{
+  "created_at": "2026-04-14T06:00:41.248Z",
+  "base_url": "http://127.0.0.1:8000",
+  "export_root": "C:\\xampp\\htdocs\\YSIacademy-laravel\\design-export\\service-screenshots\\20260414-085800",
+  "screenshots_total": 90,
+  "screenshots": [
+    {
+      "role": "guest",
+      "device": "desktop",
+      "key": "home",
+      "path": "/",
+      "file": "desktop/guest/home.png"
+    },
+    {
+      "role": "guest",
+      "device": "desktop",
+      "key": "login",
+      "path": "/login",
+      "file": "desktop/guest/login.png"
+    },
+    {
+      "role": "guest",
+      "device": "desktop",
+      "key": "register",
+      "path": "/register",
+      "file": "desktop/guest/register.png"
+    },
+    {
+      "role": "guest",
+      "device": "desktop",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "desktop/guest/catalog.png"
+    },
+    {
+      "role": "guest",
+      "device": "desktop",
+      "key": "course",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "desktop/guest/course.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "dashboard",
+      "path": "/student",
+      "file": "desktop/student/dashboard.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "profile",
+      "path": "/profile",
+      "file": "desktop/student/profile.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "desktop/student/catalog.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "course",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov",
+      "file": "desktop/student/course.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "lesson",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov/lessons/cmmq0rh9s00exirhg4buxurda",
+      "file": "desktop/student/lesson.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "lesson-nav-open",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov/lessons/cmmq0rh9s00exirhg4buxurda",
+      "file": "desktop/student/lesson-nav-open.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "desktop/student/knowledge-base.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "knowledge-base-assistant",
+      "path": "/knowledge-base",
+      "file": "desktop/student/knowledge-base-assistant.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "desktop/student/knowledge-article.png"
+    },
+    {
+      "role": "student",
+      "device": "desktop",
+      "key": "user-menu-open",
+      "path": "/student",
+      "file": "desktop/student/user-menu-open.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "dashboard",
+      "path": "/leader",
+      "file": "desktop/leader/dashboard.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "dashboard-create-panel",
+      "path": "/leader",
+      "file": "desktop/leader/dashboard-create-panel.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "assignments",
+      "path": "/leader/assignments",
+      "file": "desktop/leader/assignments.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "team-card",
+      "path": "/leader/team/cmmq0rh28000sirhg8quemref",
+      "file": "desktop/leader/team-card.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "team-edit",
+      "path": "/leader/team/cmmq0rh28000sirhg8quemref/edit",
+      "file": "desktop/leader/team-edit.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "desktop/leader/catalog.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "course",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "desktop/leader/course.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "desktop/leader/knowledge-base.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "desktop/leader/knowledge-article.png"
+    },
+    {
+      "role": "leader",
+      "device": "desktop",
+      "key": "user-menu-open",
+      "path": "/leader",
+      "file": "desktop/leader/user-menu-open.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "dashboard",
+      "path": "/admin",
+      "file": "desktop/admin/dashboard.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "course-categories",
+      "path": "/admin/course-categories",
+      "file": "desktop/admin/course-categories.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "courses-index",
+      "path": "/admin/courses",
+      "file": "desktop/admin/courses-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "course-editor",
+      "path": "/admin/courses/cmmq0rh4w006xirhgg4g8puiy",
+      "file": "desktop/admin/course-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "lesson-editor",
+      "path": "/admin/lessons/cmmq0rhb700i3irhg0so8v7vy",
+      "file": "desktop/admin/lesson-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "questions",
+      "path": "/admin/questions",
+      "file": "desktop/admin/questions.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "media",
+      "path": "/admin/media",
+      "file": "desktop/admin/media.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "knowledge-index",
+      "path": "/admin/knowledge-base",
+      "file": "desktop/admin/knowledge-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "knowledge-editor",
+      "path": "/admin/knowledge-base/articles/kb-art-statuses",
+      "file": "desktop/admin/knowledge-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "users-index",
+      "path": "/admin/users",
+      "file": "desktop/admin/users-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "users-create-panel",
+      "path": "/admin/users",
+      "file": "desktop/admin/users-create-panel.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "user-editor",
+      "path": "/admin/users/cmmq0rh28000sirhg8quemref",
+      "file": "desktop/admin/user-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "assignments",
+      "path": "/admin/assignments",
+      "file": "desktop/admin/assignments.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "results",
+      "path": "/admin/results",
+      "file": "desktop/admin/results.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "result-card",
+      "path": "/admin/results/cmmq0rh28000sirhg8quemref",
+      "file": "desktop/admin/result-card.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "desktop/admin/catalog.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "course-public",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "desktop/admin/course-public.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "desktop/admin/knowledge-base.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "desktop/admin/knowledge-article.png"
+    },
+    {
+      "role": "admin",
+      "device": "desktop",
+      "key": "user-menu-open",
+      "path": "/admin",
+      "file": "desktop/admin/user-menu-open.png"
+    },
+    {
+      "role": "guest",
+      "device": "mobile",
+      "key": "home",
+      "path": "/",
+      "file": "mobile/guest/home.png"
+    },
+    {
+      "role": "guest",
+      "device": "mobile",
+      "key": "login",
+      "path": "/login",
+      "file": "mobile/guest/login.png"
+    },
+    {
+      "role": "guest",
+      "device": "mobile",
+      "key": "register",
+      "path": "/register",
+      "file": "mobile/guest/register.png"
+    },
+    {
+      "role": "guest",
+      "device": "mobile",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "mobile/guest/catalog.png"
+    },
+    {
+      "role": "guest",
+      "device": "mobile",
+      "key": "course",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "mobile/guest/course.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "dashboard",
+      "path": "/student",
+      "file": "mobile/student/dashboard.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "profile",
+      "path": "/profile",
+      "file": "mobile/student/profile.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "mobile/student/catalog.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "course",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov",
+      "file": "mobile/student/course.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "lesson",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov/lessons/cmmq0rh9s00exirhg4buxurda",
+      "file": "mobile/student/lesson.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "lesson-nav-open",
+      "path": "/courses/amocrm-ysi-bazovyj-kurs-dlya-novyh-sotrudnikov/lessons/cmmq0rh9s00exirhg4buxurda",
+      "file": "mobile/student/lesson-nav-open.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "mobile/student/knowledge-base.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "knowledge-base-assistant",
+      "path": "/knowledge-base",
+      "file": "mobile/student/knowledge-base-assistant.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "mobile/student/knowledge-article.png"
+    },
+    {
+      "role": "student",
+      "device": "mobile",
+      "key": "user-menu-open",
+      "path": "/student",
+      "file": "mobile/student/user-menu-open.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "dashboard",
+      "path": "/leader",
+      "file": "mobile/leader/dashboard.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "dashboard-create-panel",
+      "path": "/leader",
+      "file": "mobile/leader/dashboard-create-panel.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "assignments",
+      "path": "/leader/assignments",
+      "file": "mobile/leader/assignments.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "team-card",
+      "path": "/leader/team/cmmq0rh28000sirhg8quemref",
+      "file": "mobile/leader/team-card.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "team-edit",
+      "path": "/leader/team/cmmq0rh28000sirhg8quemref/edit",
+      "file": "mobile/leader/team-edit.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "mobile/leader/catalog.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "course",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "mobile/leader/course.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "mobile/leader/knowledge-base.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "mobile/leader/knowledge-article.png"
+    },
+    {
+      "role": "leader",
+      "device": "mobile",
+      "key": "user-menu-open",
+      "path": "/leader",
+      "file": "mobile/leader/user-menu-open.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "dashboard",
+      "path": "/admin",
+      "file": "mobile/admin/dashboard.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "course-categories",
+      "path": "/admin/course-categories",
+      "file": "mobile/admin/course-categories.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "courses-index",
+      "path": "/admin/courses",
+      "file": "mobile/admin/courses-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "course-editor",
+      "path": "/admin/courses/cmmq0rh4w006xirhgg4g8puiy",
+      "file": "mobile/admin/course-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "lesson-editor",
+      "path": "/admin/lessons/cmmq0rhb700i3irhg0so8v7vy",
+      "file": "mobile/admin/lesson-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "questions",
+      "path": "/admin/questions",
+      "file": "mobile/admin/questions.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "media",
+      "path": "/admin/media",
+      "file": "mobile/admin/media.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "knowledge-index",
+      "path": "/admin/knowledge-base",
+      "file": "mobile/admin/knowledge-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "knowledge-editor",
+      "path": "/admin/knowledge-base/articles/kb-art-statuses",
+      "file": "mobile/admin/knowledge-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "users-index",
+      "path": "/admin/users",
+      "file": "mobile/admin/users-index.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "users-create-panel",
+      "path": "/admin/users",
+      "file": "mobile/admin/users-create-panel.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "user-editor",
+      "path": "/admin/users/cmmq0rh28000sirhg8quemref",
+      "file": "mobile/admin/user-editor.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "assignments",
+      "path": "/admin/assignments",
+      "file": "mobile/admin/assignments.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "results",
+      "path": "/admin/results",
+      "file": "mobile/admin/results.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "result-card",
+      "path": "/admin/results/cmmq0rh28000sirhg8quemref",
+      "file": "mobile/admin/result-card.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "catalog",
+      "path": "/courses",
+      "file": "mobile/admin/catalog.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "course-public",
+      "path": "/courses/allio-dlya-menedzhera-ysi",
+      "file": "mobile/admin/course-public.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "knowledge-base",
+      "path": "/knowledge-base",
+      "file": "mobile/admin/knowledge-base.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "knowledge-article",
+      "path": "/knowledge-base/statusy-obucheniya-v-strojteh",
+      "file": "mobile/admin/knowledge-article.png"
+    },
+    {
+      "role": "admin",
+      "device": "mobile",
+      "key": "user-menu-open",
+      "path": "/admin",
+      "file": "mobile/admin/user-menu-open.png"
+    }
+  ]
+}
