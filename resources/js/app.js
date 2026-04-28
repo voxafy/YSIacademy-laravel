@@ -3,10 +3,6 @@
     const themeToggles = Array.from(document.querySelectorAll('[data-theme-toggle]'));
     const header = document.querySelector('[data-hide-on-scroll]');
     const userMenus = Array.from(document.querySelectorAll('[data-user-menu]'));
-    const mobileNavPanel = document.querySelector('[data-mobile-nav-panel]');
-    const mobileNavBackdrop = document.querySelector('[data-mobile-nav-backdrop]');
-    const mobileNavToggles = Array.from(document.querySelectorAll('[data-mobile-nav-toggle]'));
-    const mobileNavClosers = Array.from(document.querySelectorAll('[data-mobile-nav-close]'));
 
     function readStoredTheme() {
         try {
@@ -89,47 +85,6 @@
                 panel.hidden = true;
             }
         });
-    });
-
-    function setMobileNavOpen(isOpen) {
-        if (!mobileNavPanel) {
-            return;
-        }
-
-        mobileNavPanel.hidden = !isOpen;
-        if (mobileNavBackdrop) {
-            mobileNavBackdrop.hidden = !isOpen;
-        }
-
-        document.body.classList.toggle('mobile-nav-open', isOpen);
-        mobileNavToggles.forEach(function (toggle) {
-            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        });
-    }
-
-    mobileNavToggles.forEach(function (toggle) {
-        toggle.addEventListener('click', function () {
-            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
-            setMobileNavOpen(!isOpen);
-        });
-    });
-
-    mobileNavClosers.forEach(function (button) {
-        button.addEventListener('click', function () {
-            setMobileNavOpen(false);
-        });
-    });
-
-    if (mobileNavBackdrop) {
-        mobileNavBackdrop.addEventListener('click', function () {
-            setMobileNavOpen(false);
-        });
-    }
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && mobileNavPanel && !mobileNavPanel.hidden) {
-            setMobileNavOpen(false);
-        }
     });
 
     let lastY = window.scrollY;
@@ -381,6 +336,30 @@
             rows.forEach(function (row) {
                 row.style.display = row.textContent.toLowerCase().indexOf(query) >= 0 ? '' : 'none';
             });
+        });
+    });
+
+    document.querySelectorAll('[data-file-input]').forEach(function (shell) {
+        const input = shell.querySelector('[data-file-input-native]');
+        const nameNode = shell.querySelector('[data-file-input-name]');
+
+        if (!input || !nameNode) {
+            return;
+        }
+
+        input.addEventListener('change', function () {
+            const files = input.files ? Array.from(input.files) : [];
+
+            if (files.length === 0) {
+                nameNode.textContent = 'Файл пока не выбран';
+                shell.classList.remove('has-file');
+                return;
+            }
+
+            nameNode.textContent = files.length === 1
+                ? files[0].name
+                : 'Выбрано файлов: ' + files.length;
+            shell.classList.add('has-file');
         });
     });
 

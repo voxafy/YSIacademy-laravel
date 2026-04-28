@@ -1,21 +1,29 @@
 <?php $oldForm = flash_now('old_form', []); ?>
-<section class="grid grid-split">
-    <div class="hero-card is-brand hero-card">
-        <p class="section-kicker" style="color: rgba(219,234,254,0.9);">Регистрация</p>
-        <h1 class="section-title" style="color:#fff;">Создание профиля стажера</h1>
-        <p class="section-text" style="color: rgba(239,246,255,0.92);">
-            После регистрации сотрудник получает доступ к каталогу курсов, назначенным программам,
-            урокам, тестам и собственному прогрессу.
-        </p>
+<?php
+$pageHeaderKicker = 'Регистрация';
+$pageHeaderTitle = 'Создание профиля стажёра';
+$pageHeaderText = 'После регистрации сотрудник получает доступ к каталогу курсов, назначенным программам, урокам, тестам и собственному прогрессу.';
+$pageHeaderClass = 'landing-hero__header';
+$pageHeaderTitleClass = 'landing-hero__title';
+$pageHeaderTextClass = 'landing-hero__text';
+$pageHeaderActionsHtml = '';
+?>
+
+<section class="auth-shell">
+    <div class="hero-card is-brand landing-hero auth-hero">
+        <?php include resource_path('views/partials/ui/page-header.php'); ?>
     </div>
 
-    <div class="card" style="padding: 28px;">
-        <div class="section-header">
-            <div>
-                <p class="section-kicker">Новый профиль</p>
-                <h2 class="section-title section-title--small">Зарегистрироваться</h2>
-            </div>
-        </div>
+    <div class="card card-pad-lg auth-card">
+        <?php
+        $pageHeaderKicker = 'Новый профиль';
+        $pageHeaderTitle = 'Зарегистрироваться';
+        $pageHeaderText = 'Заполните основные данные сотрудника. После сохранения профиль сразу появится в системе.';
+        $pageHeaderTitleTag = 'h2';
+        $pageHeaderTitleClass = 'section-title--small';
+        $pageHeaderTextClass = '';
+        include resource_path('views/partials/ui/page-header.php');
+        ?>
         <form action="<?= url('/register') ?>" method="post" class="form-grid form-grid-2">
             <?= csrf_field() ?>
             <label class="field">
@@ -72,7 +80,7 @@
                 <span class="field__label">Пароль</span>
                 <input class="input" type="password" name="password" required>
             </label>
-            <div style="grid-column: 1 / -1;">
+            <div class="field-actions field--full">
                 <button class="btn btn-primary btn-block" type="submit">Создать профиль</button>
             </div>
         </form>

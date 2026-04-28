@@ -1,21 +1,29 @@
 <?php $oldForm = flash_now('old_form', []); ?>
-<section class="grid grid-split">
-    <div class="hero-card is-brand hero-card">
-        <p class="section-kicker" style="color: rgba(219,234,254,0.9);">Доступ в систему</p>
-        <h1 class="section-title" style="color:#fff;">Вход в СтройТех</h1>
-        <p class="section-text" style="color: rgba(239,246,255,0.92);">
-            Используйте корпоративную учетную запись, чтобы продолжить обучение в сервисе СтройТех,
-            открыть курсы ЮСИ и перейти в кабинет по вашей роли.
-        </p>
+<?php
+$pageHeaderKicker = 'Доступ в систему';
+$pageHeaderTitle = 'Вход в СтройТех';
+$pageHeaderText = 'Используйте корпоративную учётную запись, чтобы продолжить обучение, открыть курсы ЮСИ и перейти в кабинет по вашей роли.';
+$pageHeaderClass = 'landing-hero__header';
+$pageHeaderTitleClass = 'landing-hero__title';
+$pageHeaderTextClass = 'landing-hero__text';
+$pageHeaderActionsHtml = '';
+?>
+
+<section class="auth-shell">
+    <div class="hero-card is-brand landing-hero auth-hero">
+        <?php include resource_path('views/partials/ui/page-header.php'); ?>
     </div>
 
-    <div class="card" style="padding: 28px;">
-        <div class="section-header">
-            <div>
-                <p class="section-kicker">Авторизация</p>
-                <h2 class="section-title section-title--small">Войти</h2>
-            </div>
-        </div>
+    <div class="card card-pad-lg auth-card">
+        <?php
+        $pageHeaderKicker = 'Авторизация';
+        $pageHeaderTitle = 'Войти';
+        $pageHeaderText = 'Введите рабочий email и пароль, чтобы открыть назначенные программы и базу знаний.';
+        $pageHeaderTitleTag = 'h2';
+        $pageHeaderTitleClass = 'section-title--small';
+        $pageHeaderTextClass = '';
+        include resource_path('views/partials/ui/page-header.php');
+        ?>
         <form action="<?= url('/login') ?>" method="post" class="form-grid">
             <?= csrf_field() ?>
             <label class="field">
@@ -28,6 +36,6 @@
             </label>
             <button class="btn btn-primary btn-block" type="submit">Войти</button>
         </form>
-        <p class="section-text">Нет учетной записи? <a href="<?= url('/register') ?>" style="color: var(--brand); font-weight: 700;">Зарегистрироваться</a></p>
+        <p class="section-text auth-card__footnote">Нет учётной записи? <a href="<?= url('/register') ?>" class="inline-link">Зарегистрироваться</a></p>
     </div>
 </section>
